@@ -23,6 +23,15 @@ private struct StoresImplicitsBag {
     var v1: UInt8
   }
 
+  func nestedFuncCantUseBag() {
+    func nested() {
+      // expected-error@+1 {{Using unknown bag}}
+      let scope = ImplicitScope(with: implicits)
+      defer { scope.end() }
+      _ = scope
+    }
+  }
+
   lazy var usesBagLazy: UInt16 = {
     let scope = ImplicitScope(with: implicits)
     defer { scope.end() }
@@ -87,7 +96,7 @@ private struct ImplicitBagMacro {
   }
 }
 
-private func __implicit_bag_stored_implicit_bag_swift_77_19() -> Implicits {
+private func __implicit_bag_stored_implicit_bag_swift_86_19() -> Implicits {
   return Implicits()
 }
 

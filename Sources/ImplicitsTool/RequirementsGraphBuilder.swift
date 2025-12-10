@@ -449,8 +449,21 @@ extension UnresolvedGraph {
     case let .typeDeclaration(type):
       traverseMemberBlock(type.members, namespace: type.name, file: state.file)
     case let .functionDeclaration(decl):
-      _ = decl
-    // not implemented
+      guard !decl.hasScopeParameter else {
+        diagnostics.diagnose(.nestedFunctionWithScope, at: sema.syntax)
+        return
+      }
+
+      let finalState = traverseCodeBlock(
+        decl.body,
+        state: .newScope(
+          nil,
+          inheritsScope: false,
+          allowsStoredBagUsage: false,
+          file: state.file
+        )
+      )
+      state.bagReferences += finalState.bagReferences
     case let .deferStatement(nodes):
       traverseInDeferBlock(nodes, state: &state.deferLense)
     case let .closureExpression(closure):
@@ -500,6 +513,7 @@ extension UnresolvedGraph {
         parent: state.parent
       )
       state.parent = new
+      diagnostics.check(state.hasScope, or: .noScope, at: sema.syntax)
     case let .implicitScopeBegin(nested: nested, withBag: usesBag):
       let new = addNode(syntax: sema.syntax, parent: nil)
       switch (nested: nested, usesBag: usesBag, parent: state.parent) {
@@ -646,6 +660,9 @@ extension DiagnosticMessage {
 
   fileprivate static let noExtensionNamespace: Self =
     "Using Implicits in extension of complex type, consider using free function or moving to extension with simple type"
+
+  fileprivate static let nestedFunctionWithScope: Self =
+    "Nested functions with scope parameter are not supported"
 
   // Defer block
   fileprivate static let closureWithBagInDefer: Self =

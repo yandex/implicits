@@ -46,6 +46,40 @@ private func entry1() {
   }
   closure()
 
+  // expected-error@+1 {{Using implicits without 'ImplicitScope'}}
+  _ = { funcRequiringScope(scope) }
+
+  // expected-error@+1 {{Using implicits without 'ImplicitScope'}}
+  func nestedFunc() { funcRequiringScope(scope) }
+
+  func nestedFunc2() {
+    // expected-error@+1 {{Using implicits without 'ImplicitScope'}}
+    @Implicit()
+    var _: UInt32
+  }
+
+  // expected-error@+1 {{Nested functions with scope parameter are not supported}}
+  func nestedFuncWithScope(_ scope: ImplicitScope) {
+    @Implicit()
+    var _: UInt32
+  }
+
+  func nestedFuncWithNestedScope() {
+    // expected-error@+1 {{Nesting scope is forbidden here}}
+    let scope = scope.nested()
+    defer { scope.end() }
+    _ = scope
+  }
+
+  func nestedFuncWithOwnScope() {
+    // expected-error@+1 {{Unresolved requirement: UInt64}}
+    let scope = ImplicitScope()
+    defer { scope.end() }
+
+    @Implicit()
+    var _: UInt64
+  }
+
   if Bool.random() {
     let scope = ImplicitScope() // expected-warning {{Implicitly overriding existing scope}}
     defer { scope.end() }
@@ -74,3 +108,8 @@ private func entry1() {
 
 private func code() {}
 private func code(_: ImplicitScope) {}
+
+private func funcRequiringScope(_: ImplicitScope) {
+  @Implicit()
+  var v: Int64
+}
