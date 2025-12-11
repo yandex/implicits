@@ -185,3 +185,39 @@ public func withScope<T>(_ body: (ImplicitScope) throws -> T) rethrows -> T {
   defer { scope.end() }
   return try body(scope)
 }
+
+/// Executes the given closure with a nested implicit scope and ensures it's properly ended.
+///
+/// This is a convenience function that creates a nested scope from an existing scope,
+/// passes it to the closure, and automatically calls `end()` when the closure completes,
+/// even if an error is thrown. The nested scope inherits all implicits from the outer scope.
+///
+/// Example:
+/// ```
+/// let scope = ImplicitScope()
+/// defer { scope.end() }
+///
+/// @Implicit
+/// let x = 42
+///
+/// withScope(nesting: scope) { scope in
+///   @Implicit
+///   var x: Int // inherits value 42 from outer scope
+///   @Implicit
+///   let y = 100
+///   printX(scope) // prints 42
+///   printY(scope) // prints 100
+/// }
+/// ```
+///
+/// - Parameters:
+///   - outer: The outer scope to nest within.
+///   - body: A closure that takes an ImplicitScope and returns a value.
+/// - Returns: The value returned by the closure.
+/// - Throws: Rethrows any error thrown by the closure.
+@inlinable
+public func withScope<T>(nesting outer: ImplicitScope, _ body: (ImplicitScope) throws -> T) rethrows -> T {
+  let scope = outer.nested()
+  defer { scope.end() }
+  return try body(scope)
+}

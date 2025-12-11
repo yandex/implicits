@@ -53,7 +53,7 @@ private func entry1() {
   func nestedFunc() { funcRequiringScope(scope) }
 
   func nestedFunc2() {
-    // expected-error@+1 {{Using implicits without 'ImplicitScope'}}
+    // expected-error@+2 {{Using implicits without 'ImplicitScope'}}
     @Implicit()
     var _: UInt32
   }

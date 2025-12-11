@@ -299,6 +299,12 @@ extension UnresolvedGraph {
     }
   }
 
+  mutating func diagnoseBagUsageInDisallowedContext(_ bagReferences: [Idx]) {
+    for bag in bagReferences {
+      diagnostics.diagnose(.noBag, at: graph[bag].payload)
+    }
+  }
+
   // MARK: CodeBlock
 
   struct CodeBlockState {
@@ -463,7 +469,10 @@ extension UnresolvedGraph {
           file: state.file
         )
       )
-      state.bagReferences += finalState.bagReferences
+
+      if !finalState.bagReferences.isEmpty {
+        diagnoseBagUsageInDisallowedContext(finalState.bagReferences)
+      }
     case let .deferStatement(nodes):
       traverseInDeferBlock(nodes, state: &state.deferLense)
     case let .closureExpression(closure):
@@ -498,7 +507,11 @@ extension UnresolvedGraph {
           graph.addEdge(from: idx, to: bag)
         }
       case (usesBag: true, bag: nil):
-        state.bagReferences += finalState.bagReferences
+        if state.allowsStoredBagUsage {
+          state.bagReferences += finalState.bagReferences
+        } else {
+          diagnoseBagUsageInDisallowedContext(finalState.bagReferences)
+        }
       case (usesBag: false, bag: let idx?):
         diagnostics.diagnose(.unusedBag, at: graph[idx].payload)
       case (usesBag: false, bag: nil):
@@ -566,14 +579,26 @@ extension UnresolvedGraph {
         parent: state.parent
       )
       diagnostics.check(state.hasWritableScope, or: .noWritableScope, at: sema.syntax)
-    case let .withScope(body: body):
+    case let .withScope(nested: isNested, body: body):
       var innerState = state.innerScopeLense
       defer { state.innerScopeLense = innerState }
       let scopeNode = addNode(syntax: sema.syntax, parent: nil)
-      entryPoints.append(scopeNode)
+
+      if isNested {
+        // withScope(nesting:) - inherits from parent like scope.nested()
+        if let parent = state.parent {
+          graph.addEdge(from: parent, to: scopeNode)
+        } else {
+          diagnostics.diagnose(.nestingNoScope, at: sema.syntax)
+        }
+      } else {
+        // withScope {} - new entry point
+        entryPoints.append(scopeNode)
+      }
+
       innerState.parent = scopeNode
       innerState.beginLocalScope(
-        nested: false, at: sema.syntax, diagnostics: &diagnostics
+        nested: isNested, at: sema.syntax, diagnostics: &diagnostics
       )
       innerState.endLocalScope(at: sema.syntax, diagnostics: &diagnostics)
       traverseCodeBlock(body, state: &innerState)

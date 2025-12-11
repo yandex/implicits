@@ -73,7 +73,7 @@ enum SemaTree<Syntax> {
     case functionCall(FuncCall)
     case implicitScopeBegin(nested: Bool, withBag: Bool)
     case implicitScopeEnd
-    case withScope(body: [CodeBlockItem])
+    case withScope(nested: Bool, body: [CodeBlockItem])
     case implicitMap(from: ImplicitKey, to: ImplicitKey)
     case implicit(Implicit)
   }
@@ -246,8 +246,8 @@ extension SemaTree.CodeBlockItemNode {
       .implicitScopeEnd
     case let .implicit(implicit):
       .implicit(implicit)
-    case let .withScope(body: body):
-      .withScope(body: body.map { $0.mapSyntax(transform) })
+    case let .withScope(nested: nested, body: body):
+      .withScope(nested: nested, body: body.map { $0.mapSyntax(transform) })
     case let .implicitMap(from: from, to: to):
       .implicitMap(from: from, to: to)
     }

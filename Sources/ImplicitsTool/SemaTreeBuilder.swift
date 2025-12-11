@@ -753,8 +753,7 @@ enum SemaTreeBuilder<
     let base = functionCall.base
     let name = functionCall.name
 
-    // withScope { scope in ... }
-    if let (closure, scope) = functionCall.isWithScope() {
+    if let (nested, closure, scope) = functionCall.isWithScope() {
       let withScopeBody = visit(
         codeBlockEntities: closure.body,
         context: &context[withScope: closure, scopeParamter: scope]
@@ -763,7 +762,7 @@ enum SemaTreeBuilder<
       return .regularFunction(argsAndCalled: [
         CodeBlockItem(
           syntax: syntax,
-          node: .withScope(body: withScopeBody)
+          node: .withScope(nested: nested, body: withScopeBody)
         )
       ])
     }
@@ -1247,17 +1246,36 @@ extension SyntaxTree.FunctionCall {
     return Sema.ImplicitBagDescription(fillFunctionName: name)
   }
 
-  func isWithScope(
-  ) -> (closure: SyntaxTree.ClosureExpr, scopeArg: Syntax)? {
+  func getWithScopeArgs() -> (nested: Bool, closure: SyntaxTree.ClosureExpr)? {
+    // Validate arguments: must be 0 or 1 named "nesting"
+    let nested: Bool
+    switch arguments.count {
+    case 0:
+      nested = false
+    case 1:
+      guard arguments[0].name?.value == "nesting" else { return nil }
+      nested = true
+    default:
+      return nil
+    }
+
+    // Check trailing closure
+    guard let trailingClosure else { return nil }
+
+    return (nested: nested, closure: trailingClosure.value)
+  }
+
+  func isWithScope() -> (nested: Bool, closure: SyntaxTree.ClosureExpr, scopeArg: Syntax)? {
     guard base == nil,
           name?.value.description == "withScope",
-          let trailingClosure,
-          let params = trailingClosure.value.parameters,
+          let (nested, closure) = getWithScopeArgs(),
+          let params = closure.parameters,
           let scopeArg = params.singleElement,
           scopeArg.isImplicitScope else {
       return nil
     }
-    return (closure: trailingClosure.value, scopeArg: scopeArg.name.syntax)
+
+    return (nested: nested, closure: closure, scopeArg: scopeArg.name.syntax)
   }
 }
 
