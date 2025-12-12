@@ -12,23 +12,16 @@ public final class TestSupport {
   init() {} // to prevent swiftFormat from turning it into an enum
 
   public static func readFile(_ name: String) -> String {
-    let resourceURL = URL(
-      fileURLWithPath: bundle.resourceURL!.path + "/test_data/" + name
-    )
+    // Read directly from source tree - always fresh, no bundle caching issues
+    let resourceURL = URL(fileURLWithPath: pathToSourceFile(name))
     return try! String(contentsOf: resourceURL, encoding: .utf8)
   }
 
   public static func pathToSourceFile(_ name: String) -> String {
-    var currentURL = URL(fileURLWithPath: #file)
+    var currentURL = URL(fileURLWithPath: #filePath)
     currentURL.deleteLastPathComponent()
     currentURL.append(path: "test_data", directoryHint: .isDirectory)
     currentURL.appendPathComponent(name)
     return currentURL.path
   }
 }
-
-#if PACKAGE_MANAGER
-private let bundle = Bundle.module
-#else
-private let bundle = Bundle(for: TestSupport.self)
-#endif

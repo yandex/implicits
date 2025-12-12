@@ -100,9 +100,7 @@ let package = Package(
     ),
     .target(
       name: "TestResources",
-      resources: [
-        .copy("test_data"),
-      ],
+      exclude: ["test_data"],
       swiftSettings: [
         .define("PACKAGE_MANAGER"),
       ]
