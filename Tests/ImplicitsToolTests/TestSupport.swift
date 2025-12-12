@@ -275,9 +275,9 @@ struct InMemoryInputByteStream: InputByteStream {
     self.storage = buffer[...]
   }
 
-  public var location: String { "\(storage.startIndex)" }
+  var location: String { "\(storage.startIndex)" }
 
-  public mutating func read(
+  mutating func read(
     into buffer: UnsafeMutableRawBufferPointer
   ) throws(SerializationError) {
     guard buffer.count <= storage.count else {
@@ -302,13 +302,13 @@ struct InMemoryOutputByteStream: OutputByteStream {
     self.storage = []
   }
 
-  public mutating func write(
+  mutating func write(
     _ buffer: UnsafeRawBufferPointer
   ) throws(SerializationError) {
     storage.append(contentsOf: buffer)
   }
 
-  public func data() -> [UInt8] {
+  func data() -> [UInt8] {
     storage
   }
 }

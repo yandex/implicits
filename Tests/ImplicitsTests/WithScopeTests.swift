@@ -60,7 +60,7 @@ final class WithScopeTests: XCTestCase {
     @Implicit(\.launchID)
     var launchID = 999
 
-    withScope(nesting: scope) { scope in
+    withScope(nesting: scope) { _ in
       @Implicit(\.id)
       var inheritedId: Int
       @Implicit(\.launchID)

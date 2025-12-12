@@ -9,11 +9,11 @@
 struct PreDiagnostic<Syntax>: Swift.Error, @unchecked Sendable {
   typealias Message = DiagnosticMessage
 
-  public var severity: Diagnostic.Severity
-  public var syntax: Syntax
-  public var message: Message
+  var severity: Diagnostic.Severity
+  var syntax: Syntax
+  var message: Message
 
-  public init(severity: Diagnostic.Severity, syntax: Syntax, message: Message) {
+  init(severity: Diagnostic.Severity, syntax: Syntax, message: Message) {
     self.severity = severity
     self.syntax = syntax
     self.message = message

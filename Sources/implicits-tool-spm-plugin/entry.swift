@@ -81,6 +81,5 @@ extension StaticAnalysis {
 }
 
 extension BasicFormat {
-  nonisolated(unsafe)
-  static let defaultStyle = BasicFormat(indentationWidth: .spaces(2))
+  nonisolated(unsafe) static let defaultStyle = BasicFormat(indentationWidth: .spaces(2))
 }

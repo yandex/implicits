@@ -160,7 +160,7 @@ extension SyntaxTree.TypeModel.EffectSpecifiers {
       let type = $0.type.map { "(\($0.render(&policy)))" } ?? ""
       return word + type
     }
-    return [asyncSpec, throwsSpec].compactMap { $0 }.joined(separator: " ")
+    return [asyncSpec, throwsSpec].compactMap(\.self).joined(separator: " ")
   }
 }
 

@@ -216,7 +216,10 @@ public func withScope<T>(_ body: (ImplicitScope) throws -> T) rethrows -> T {
 /// - Returns: The value returned by the closure.
 /// - Throws: Rethrows any error thrown by the closure.
 @inlinable
-public func withScope<T>(nesting outer: ImplicitScope, _ body: (ImplicitScope) throws -> T) rethrows -> T {
+public func withScope<T>(
+  nesting outer: ImplicitScope,
+  _ body: (ImplicitScope) throws -> T
+) rethrows -> T {
   let scope = outer.nested()
   defer { scope.end() }
   return try body(scope)

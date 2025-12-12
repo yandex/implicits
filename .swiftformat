@@ -1,1 +1,28 @@
 --exclude Sources/TestResources/test_data
+
+--disable preferForLoop
+--disable redundantFileprivate
+--disable redundantInternal
+--disable redundantSelf
+--disable wrapLoopBodies
+--disable wrapMultilineStatementBraces
+
+--enable wrapMultilineConditionalAssignment
+--enable blockComments
+
+# https://github.com/nicklockwood/SwiftFormat/issues/1991
+--disable trailingCommas
+
+--extensionacl on-declarations
+--hexgrouping 2
+--ifdef noindent
+--indent 2
+--maxwidth 100
+--nospaceoperators ...,..<
+--operatorfunc nospace
+--shortoptionals always
+--symlinks ignore
+--wraparguments before-first
+--wrapcollections before-first
+--wrapparameters before-first
+--modifierorder public,private,private(set),internal,override
