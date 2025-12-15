@@ -172,7 +172,7 @@ extension ImplicitScope {
 /// withScope { scope in
 ///   @Implicit
 ///   let x = 42
-///   printX(scope) // prints 42
+///   // ...
 /// }
 /// ```
 ///
@@ -182,6 +182,43 @@ extension ImplicitScope {
 @inlinable
 public func withScope<T>(_ body: (ImplicitScope) throws -> T) rethrows -> T {
   let scope = ImplicitScope()
+  defer { scope.end() }
+  return try body(scope)
+}
+
+/// Executes the given closure with a new implicit scope initialized with an implicit bag.
+///
+/// It creates a new scope with the provided implicits, passes it to the closure,
+/// and automatically calls `end()` when the closure completes, even if an error is thrown.
+///
+/// Example:
+/// ```
+/// class MyService {
+///   let implicits = #implicits
+///
+///   init(_: ImplicitScope) {}
+///
+///   func doWork() {
+///     withScope(with: implicits) { scope in
+///       @Implicit
+///       var x: Int
+///       print(x)
+///     }
+///   }
+/// }
+/// ```
+///
+/// - Parameters:
+///   - implicits: The implicit bag to initialize the scope with.
+///   - body: A closure that takes an ImplicitScope and returns a value.
+/// - Returns: The value returned by the closure.
+/// - Throws: Rethrows any error thrown by the closure.
+@inlinable
+public func withScope<T>(
+  with implicits: Implicits,
+  _ body: (ImplicitScope) throws -> T
+) rethrows -> T {
+  let scope = ImplicitScope(with: implicits)
   defer { scope.end() }
   return try body(scope)
 }
@@ -202,11 +239,9 @@ public func withScope<T>(_ body: (ImplicitScope) throws -> T) rethrows -> T {
 ///
 /// withScope(nesting: scope) { scope in
 ///   @Implicit
-///   var x: Int // inherits value 42 from outer scope
+///   var x: Int // x == 42, inherited from outer scope
 ///   @Implicit
-///   let y = 100
-///   printX(scope) // prints 42
-///   printY(scope) // prints 100
+///   let y = 100 // y is only visible in nested scope
 /// }
 /// ```
 ///

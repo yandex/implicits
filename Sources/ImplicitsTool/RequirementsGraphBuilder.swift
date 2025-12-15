@@ -579,21 +579,25 @@ extension UnresolvedGraph {
         parent: state.parent
       )
       diagnostics.check(state.hasWritableScope, or: .noWritableScope, at: sema.syntax)
-    case let .withScope(nested: isNested, body: body):
+    case let .withScope(nested: isNested, withBag: usesBag, body: body):
       var innerState = state.innerScopeLense
       defer { state.innerScopeLense = innerState }
       let scopeNode = addNode(syntax: sema.syntax, parent: nil)
 
-      if isNested {
-        // withScope(nesting:) - inherits from parent like scope.nested()
-        if let parent = state.parent {
-          graph.addEdge(from: parent, to: scopeNode)
-        } else {
-          diagnostics.diagnose(.nestingNoScope, at: sema.syntax)
-        }
-      } else {
-        // withScope {} - new entry point
+      switch (nested: isNested, usesBag: usesBag, parent: state.parent) {
+      case (nested: false, usesBag: false, parent: _):
+        // `withScope {}`
         entryPoints.append(scopeNode)
+      case (nested: true, usesBag: false, parent: nil):
+        diagnostics.diagnose(.nestingNoScope, at: sema.syntax)
+      case (nested: true, usesBag: false, parent: let parent?):
+        // `withScope(nesting:)`
+        graph.addEdge(from: parent, to: scopeNode)
+      case (nested: false, usesBag: true, parent: _):
+        // `withScope(with: implicits)`
+        innerState.bagReferences.append(scopeNode)
+      case (nested: true, usesBag: true, parent: _):
+        diagnostics.diagnose(.nestedScopeUsesBags, at: sema.syntax)
       }
 
       innerState.parent = scopeNode
