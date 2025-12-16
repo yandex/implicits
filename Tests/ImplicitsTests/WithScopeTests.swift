@@ -1,9 +1,9 @@
-import XCTest
+import Testing
 
 @_spi(Unsafe) internal import Implicits
 
-final class WithScopeTests: XCTestCase {
-  func testWithScope() {
+struct WithScopeTests {
+  @Test func scopeBasics() {
     let scope = ImplicitScope()
     defer { scope.end() }
 
@@ -13,7 +13,7 @@ final class WithScopeTests: XCTestCase {
     withScope { scope in
       @Implicit(\.id)
       var value = 200
-      XCTAssertEqual(value, 200)
+      #expect(value == 200)
 
       do {
         let scope = scope.nested()
@@ -21,16 +21,16 @@ final class WithScopeTests: XCTestCase {
 
         @Implicit(\.id)
         var value = 300
-        XCTAssertEqual(value, 300)
+        #expect(value == 300)
       }
 
-      XCTAssertEqual(value, 200)
+      #expect(value == 200)
     }
 
-    XCTAssertEqual(value, 42)
+    #expect(value == 42)
   }
 
-  func testWithScopeThrows() {
+  @Test func scopeThrows() {
     let scope = ImplicitScope()
     defer { scope.end() }
 
@@ -41,16 +41,16 @@ final class WithScopeTests: XCTestCase {
       try withScope { _ in
         @Implicit(\.id)
         var value = 300
-        XCTAssertEqual(value, 300)
+        #expect(value == 300)
         throw TestError()
       }
-      XCTFail("Should have thrown")
+      Issue.record("Should have thrown")
     } catch {
-      XCTAssertEqual(value, 42)
+      #expect(value == 42)
     }
   }
 
-  func testWithScopeNesting() {
+  @Test func scopeNesting() {
     let scope = ImplicitScope()
     defer { scope.end() }
 
@@ -65,35 +65,35 @@ final class WithScopeTests: XCTestCase {
       var inheritedId: Int
       @Implicit(\.launchID)
       var inheritedLaunchID: Int
-      XCTAssertEqual(inheritedId, 42)
-      XCTAssertEqual(inheritedLaunchID, 999)
+      #expect(inheritedId == 42)
+      #expect(inheritedLaunchID == 999)
 
       @Implicit(\.id)
       var overriddenId = 100
-      XCTAssertEqual(overriddenId, 100)
+      #expect(overriddenId == 100)
 
       @Implicit(\.launchID)
       var unchangedLaunchID: Int
-      XCTAssertEqual(unchangedLaunchID, 999)
+      #expect(unchangedLaunchID == 999)
     }
 
-    XCTAssertEqual(id, 42)
-    XCTAssertEqual(launchID, 999)
+    #expect(id == 42)
+    #expect(launchID == 999)
 
     do {
       try withScope(nesting: scope) { _ in
         @Implicit(\.id)
         var value = 300
-        XCTAssertEqual(value, 300)
+        #expect(value == 300)
         throw TestError()
       }
-      XCTFail("Should have thrown")
+      Issue.record("Should have thrown")
     } catch {
-      XCTAssertEqual(id, 42)
+      #expect(id == 42)
     }
   }
 
-  func testWithScopeWithBag() {
+  @Test func scopeWithBag() {
     let scope = ImplicitScope()
     defer { scope.end() }
 
@@ -107,16 +107,16 @@ final class WithScopeTests: XCTestCase {
       withScope(with: implicits) { _ in
         @Implicit(\.id)
         var inheritedValue: Int
-        XCTAssertEqual(inheritedValue, 42)
+        #expect(inheritedValue == 42)
 
         @Implicit(\.id)
         var overriddenValue = 100
-        XCTAssertEqual(overriddenValue, 100)
+        #expect(overriddenValue == 100)
       }
     }
     closure()
 
-    XCTAssertEqual(id, 42)
+    #expect(id == 42)
 
     do {
       let closure = {
@@ -126,18 +126,18 @@ final class WithScopeTests: XCTestCase {
         try withScope(with: implicits) { _ in
           @Implicit(\.id)
           var value = 300
-          XCTAssertEqual(value, 300)
+          #expect(value == 300)
           throw TestError()
         }
       }
       try closure()
-      XCTFail("Should have thrown")
+      Issue.record("Should have thrown")
     } catch {
-      XCTAssertEqual(id, 42)
+      #expect(id == 42)
     }
   }
 
-  func testWithScopeWithStoredBag() {
+  @Test func scopeWithStoredBag() {
     let scope = ImplicitScope()
     defer { scope.end() }
 
@@ -152,12 +152,12 @@ final class WithScopeTests: XCTestCase {
     )
 
     service.doWork { inheritedId, inheritedLaunchID in
-      XCTAssertEqual(inheritedId, 42)
-      XCTAssertEqual(inheritedLaunchID, 999)
+      #expect(inheritedId == 42)
+      #expect(inheritedLaunchID == 999)
     }
 
-    XCTAssertEqual(id, 42)
-    XCTAssertEqual(launchID, 999)
+    #expect(id == 42)
+    #expect(launchID == 999)
   }
 }
 

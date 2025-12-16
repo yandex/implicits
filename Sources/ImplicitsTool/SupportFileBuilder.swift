@@ -195,7 +195,7 @@ private struct ImportsIndex {
 /// `Bool` -> `bool`, `Foo.Bar` -> `fooBar`,
 /// `(Int32) -> Void` -> `int32Void`
 fileprivate func parameterNameFromType(_ type: String) -> String {
-  type.split(separator: #/\W+/#).enumerated()
+  type.split(whereSeparator: { !$0.isLetter && !$0.isNumber }).enumerated()
     .map { index, s in
       s.mapFirstLetter { index > 0 ? $0.uppercased() : $0.lowercased() }
     }

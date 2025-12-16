@@ -3,179 +3,187 @@
 
 @testable import ImplicitsTool
 
-import XCTest
+import Testing
 
 import SwiftBasicFormat
 import SwiftParser
 import SwiftSyntax
 import TestResources
 
-extension XCTestCase {
-  func verify(
-    file: String, enableExporting: Bool = false, supportFile: String? = nil
-  ) {
-    verify(
-      files: [file], enableExporting: enableExporting, supportFile: supportFile
+func verify(
+  file: String,
+  enableExporting: Bool = false,
+  supportFile: String? = nil,
+  sourceLocation: Testing.SourceLocation = #_sourceLocation
+) {
+  verify(
+    files: [file],
+    enableExporting: enableExporting,
+    supportFile: supportFile,
+    sourceLocation: sourceLocation
+  )
+}
+
+func verify(
+  files: [String],
+  enableExporting: Bool = false,
+  supportFile: String? = nil,
+  dependencies: [(modulename: String, files: [String])] = [],
+  sourceLocation: Testing.SourceLocation = #_sourceLocation
+) {
+  var dependenciesInterfaces = [[UInt8]]()
+  for dep in dependencies {
+    let interface = verify(
+      files: dep.files,
+      modulename: dep.modulename,
+      enableExporting: false,
+      supportFile: nil,
+      dependencies: [],
+      sourceLocation: sourceLocation
     )
+    do {
+      try dependenciesInterfaces.append(interface.testSerialize())
+    } catch {
+      Issue.record("Serialization failed: \(error)", sourceLocation: sourceLocation)
+    }
   }
 
-  func verify(
-    files: [String],
-    enableExporting: Bool = false,
-    supportFile: String? = nil,
-    dependencies: [(modulename: String, files: [String])] = []
-  ) {
-    var dependenciesInterfaces = [[UInt8]]()
-    for dep in dependencies {
-      let interface = verify(
-        files: dep.files, modulename: dep.modulename,
-        enableExporting: false,
-        supportFile: nil,
-        dependencies: []
-      )
-      XCTAssertNoThrow(
-        try dependenciesInterfaces.append(interface.testSerialize())
-      )
-    }
-    if !dependenciesInterfaces.isEmpty {
-      let interfacesDescr = dependenciesInterfaces.map {
-        $0.map { String(format: "%02x", $0) }.joined(separator: " ")
-      }.joined(separator: "\n")
-      add(XCTAttachment(
-        string: "Serialized Interfaces:\n\(interfacesDescr)"
-      ))
-    }
-
-    var deserializedInterfaces = [ImplicitModuleInterface]()
-    for interfaceBytes in dependenciesInterfaces {
-      XCTAssertNoThrow(try deserializedInterfaces.append(
+  var deserializedInterfaces = [ImplicitModuleInterface]()
+  for interfaceBytes in dependenciesInterfaces {
+    do {
+      try deserializedInterfaces.append(
         ImplicitModuleInterface.testDeserialize(from: interfaceBytes)
-      ))
+      )
+    } catch {
+      Issue.record("Deserialization failed: \(error)", sourceLocation: sourceLocation)
     }
-    _ = verify(
-      files: files, modulename: "TestModule",
-      enableExporting: enableExporting,
-      supportFile: supportFile,
-      dependencies: deserializedInterfaces
-    )
+  }
+  _ = verify(
+    files: files,
+    modulename: "TestModule",
+    enableExporting: enableExporting,
+    supportFile: supportFile,
+    dependencies: deserializedInterfaces,
+    sourceLocation: sourceLocation
+  )
+}
+
+func verify(
+  files: [String],
+  modulename: String,
+  enableExporting: Bool,
+  supportFile: String?,
+  dependencies: [ImplicitModuleInterface],
+  sourceLocation: Testing.SourceLocation
+) -> ImplicitModuleInterface {
+  let sources = files.map(TestSupport.readFile)
+  let asts = sources.map(Parser.parse(source:))
+  let analysisRun = StaticAnalysis.run(
+    files: zip(asts, files).map { .init(ast: $0, filename: $1) },
+    modulename: modulename,
+    dependencies: dependencies,
+    compilationConditions: .unknown,
+    enableExporting: enableExporting
+  )
+
+  // Diagnostics
+  let resultDiagnostics = Set(analysisRun.diagnostics.map {
+    var diag = $0
+    diag.loc.column = 0
+    diag.loc.columnEnd = nil
+    return diag
+  })
+  let expectedDiagnostics = Set(
+    zip(sources, files)
+      .flatMap { expectedDiagnosticsInFile(source: $0, filename: $1) }
+  )
+
+  for diag in resultDiagnostics.subtracting(expectedDiagnostics) {
+    let sourceFilePath = TestSupport.pathToSourceFile(diag.loc.file)
+    reportDiagnostic(.unexpectedDiagnostic, diag, at: sourceFilePath)
   }
 
-  func verify(
-    files: [String],
-    modulename: String,
-    enableExporting: Bool,
-    supportFile: String?,
-    dependencies: [ImplicitModuleInterface]
-  ) -> ImplicitModuleInterface {
-    let sources = files.map(TestSupport.readFile)
-    let asts = sources.map(Parser.parse(source:))
-    let analysisRun = StaticAnalysis.run(
-      files: zip(asts, files).map { .init(ast: $0, filename: $1) },
-      modulename: modulename,
-      dependencies: dependencies,
-      compilationConditions: .unknown,
-      enableExporting: enableExporting
-    )
-
-    // Diagnostics
-    let resultDiagnostics = Set(analysisRun.diagnostics.map {
-      var diag = $0
-      diag.loc.column = 0
-      diag.loc.columnEnd = nil
-      return diag
-    })
-    let expectedDiagnostics = Set(
-      zip(sources, files)
-        .flatMap(expectedDiagnosticsInFile(source:filename:))
-    )
-
-    for diag in resultDiagnostics.subtracting(expectedDiagnostics) {
-      let sourceFilePath = TestSupport.pathToSourceFile(diag.loc.file)
-      report(.unexpectedDiagnostic, diag, at: sourceFilePath)
-    }
-
-    for diag in expectedDiagnostics.subtracting(resultDiagnostics) {
-      let sourceFilePath = TestSupport.pathToSourceFile(diag.loc.file)
-      report(.missingDiagnostic, diag, at: sourceFilePath)
-    }
-
-    // Keys
-    let expextedKeys = Set(sources.flatMap(expectedKeyDeclarationsInFile))
-    let resultKeys = Set(analysisRun.supportFile.keys)
-    for key in expextedKeys.subtracting(resultKeys) {
-      XCTFail("Missing key declaration: \(key)")
-    }
-    for key in resultKeys.subtracting(expextedKeys) {
-      XCTFail("Unexpected key declaration: \(key)")
-    }
-
-    // Support file
-    if let supportFile {
-      let expectedSupportFile = TestSupport.readFile(supportFile)
-      // Disable all formatters
-      let resultSupportFile = "// swiftformat:disable all\n#if false\n#endif\n" +
-        analysisRun.supportFile
-        .render(accessLevelOnImports: true)
-        .formatted(using: BasicFormat(indentationWidth: .spaces(2)))
-        .description
-      let (isEqual, diff) = diff(expectedSupportFile, resultSupportFile)
-
-      if !isEqual {
-        let diffDescr = diff.map { "\($0.change.rawValue)\($0.line)" }
-          .joined(separator: "\n")
-        XCTFail("Support file doesn't match:\n\(diffDescr)")
-      }
-    }
-    return analysisRun.publicInterface
+  for diag in expectedDiagnostics.subtracting(resultDiagnostics) {
+    let sourceFilePath = TestSupport.pathToSourceFile(diag.loc.file)
+    reportDiagnostic(.missingDiagnostic, diag, at: sourceFilePath)
   }
 
-  private enum ErrorKind {
-    case unexpectedDiagnostic
-    case missingDiagnostic
+  // Keys
+  let expextedKeys = Set(sources.flatMap { expectedKeyDeclarationsInFile(source: $0) })
+  let resultKeys = Set(analysisRun.supportFile.keys)
+  for key in expextedKeys.subtracting(resultKeys) {
+    Issue.record("Missing key declaration: \(key)", sourceLocation: sourceLocation)
+  }
+  for key in resultKeys.subtracting(expextedKeys) {
+    Issue.record("Unexpected key declaration: \(key)", sourceLocation: sourceLocation)
   }
 
-  private func report(_ kind: ErrorKind, _ diag: Diagnostic, at file: String) {
-    let msg: String
-    let issueType: XCTIssue.IssueType
+  // Support file
+  if let supportFile {
+    let expectedSupportFile = TestSupport.readFile(supportFile)
+    // Disable all formatters
+    let resultSupportFile = "// swiftformat:disable all\n#if false\n#endif\n" +
+      analysisRun.supportFile
+      .render(accessLevelOnImports: true)
+      .formatted(using: BasicFormat(indentationWidth: .spaces(2)))
+      .description
+    let (isEqual, diff) = diff(expectedSupportFile, resultSupportFile)
+
+    if !isEqual {
+      let diffDescr = diff.map { "\($0.change.rawValue)\($0.line)" }
+        .joined(separator: "\n")
+      Issue.record("Support file doesn't match:\n\(diffDescr)", sourceLocation: sourceLocation)
+    }
+  }
+  return analysisRun.publicInterface
+}
+
+private enum DiagnosticErrorKind {
+  case unexpectedDiagnostic
+  case missingDiagnostic
+}
+
+private func reportDiagnostic(_ kind: DiagnosticErrorKind, _ diag: Diagnostic, at file: String) {
+  let msg =
     switch kind {
     case .missingDiagnostic:
-      msg = "Missing diagnostic"
-      issueType = .unmatchedExpectedFailure
+      "Missing diagnostic"
     case .unexpectedDiagnostic:
-      msg = "Unexpected diagnostic"
-      issueType = .assertionFailure
+      "Unexpected diagnostic"
     }
 
-    XCTFail("\(msg):\n\(diag.render())\n")
-    let issue = XCTIssue(
-      type: issueType,
-      compactDescription: "\(msg): \(diag.severity.render()): \(diag.message)",
-      sourceCodeContext: XCTSourceCodeContext(
-        location: XCTSourceCodeLocation(
-          filePath: file,
-          lineNumber: diag.loc.line
-        )
-      ),
-      associatedError: nil, attachments: []
+  Issue.record(
+    Comment(rawValue: "\(msg):\n\(diag.render())\n"),
+    sourceLocation: SourceLocation(
+      fileID: file,
+      filePath: file,
+      line: diag.loc.line,
+      column: 0
     )
-    record(issue)
-  }
+  )
 }
 
 // Inspired by
 // https://clang.llvm.org/docs/InternalsManual.html#specifying-diagnostics
-private func expectedDiagnosticsInFile(source: String, filename: String) -> [Diagnostic] {
+private func expectedDiagnosticsInFile(
+  source: String,
+  filename: String,
+  sourceLocation: Testing.SourceLocation = #_sourceLocation
+) -> [Diagnostic] {
   let lines = source.split(separator: "\n", omittingEmptySubsequences: false)
   let errors = lines.enumerated().flatMap { idx, line -> [Diagnostic] in
     line.matches(of: expectedDiagRegex).compactMap { match in
       guard let severity = Diagnostic.Severity(match.output.severity) else {
-        XCTFail("Unknown diagnostic severity level: \(match.output.severity)")
+        Issue.record(
+          "Unknown diagnostic severity level: \(match.output.severity)",
+          sourceLocation: sourceLocation
+        )
         return nil
       }
       let lineN: Int
       if let at = match.output.at?.dropFirst() {
         let number = Int(at) ?? {
-          XCTFail("Unable to parse line number: \(at)")
+          Issue.record("Unable to parse line number: \(at)", sourceLocation: sourceLocation)
           return 0
         }()
         switch at.first {
@@ -199,14 +207,18 @@ private func expectedDiagnosticsInFile(source: String, filename: String) -> [Dia
   return errors
 }
 
-func expectedKeyDeclarationsInFile(source: String) -> [Sema.ImplicitKeyDecl] {
+func expectedKeyDeclarationsInFile(
+  source: String,
+  sourceLocation: Testing.SourceLocation = #_sourceLocation
+) -> [Sema.ImplicitKeyDecl] {
   let lines = source.split(separator: "\n", omittingEmptySubsequences: false)
   return lines.enumerated().flatMap { _, line in
     line.matches(of: expectedKeyDeclRegex).compactMap { match in
       let visibility = Visibility(match.output.visibility)
-      XCTAssertNotNil(
-        visibility,
-        "Unknown visibility level: '\(match.output.visibility)'"
+      #expect(
+        visibility != nil,
+        "Unknown visibility level: '\(match.output.visibility)'",
+        sourceLocation: sourceLocation
       )
       let key = match.output.key
       let type = match.output.type
@@ -321,29 +333,26 @@ extension Serializable {
   }
 
   static func testDeserialize(
-    from bytes: [UInt8]
+    from bytes: [UInt8],
+    sourceLocation: Testing.SourceLocation = #_sourceLocation
   ) throws(SerializationError) -> Self {
     var input = InMemoryInputByteStream(bytes)
     let value = try Self(from: &input)
-    XCTAssertEqual(input.storage.count, 0)
+    #expect(input.storage.count == 0, sourceLocation: sourceLocation)
     return value
   }
 }
 
-extension XCTestCase {
-  func checkSerialization<T: Serializable & Equatable & Sendable>(_ value: T) {
-    XCTAssertNoThrow(try MainActor.assumeIsolated {
-      try XCTContext.runActivity(named: "serializing type \(T.self)") {
-        $0.add(XCTAttachment(string: "serializing \(value)"))
-        let bytes = try value.testSerialize()
-        let bytesDescr = bytes
-          .map { String(format: "%02x", $0) }.joined(separator: " ")
-        $0.add(XCTAttachment(string: "serialized bytes: \(bytesDescr)"))
-        let deserialized = try T.testDeserialize(from: bytes)
-        $0.add(XCTAttachment(string: "deserialized \(deserialized)"))
-        XCTAssertEqual(value, deserialized)
-      }
-    })
+func checkSerialization<T: Serializable & Equatable & Sendable>(
+  _ value: T,
+  sourceLocation: Testing.SourceLocation = #_sourceLocation
+) {
+  do {
+    let bytes = try value.testSerialize()
+    let deserialized = try T.testDeserialize(from: bytes, sourceLocation: sourceLocation)
+    #expect(value == deserialized, sourceLocation: sourceLocation)
+  } catch {
+    Issue.record("Serialization failed: \(error)", sourceLocation: sourceLocation)
   }
 }
 

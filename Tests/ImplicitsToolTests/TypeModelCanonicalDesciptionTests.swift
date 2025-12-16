@@ -1,45 +1,45 @@
 // Copyright 2024 Yandex LLC. All rights reserved.
 
-import XCTest
+import Testing
 
 import ImplicitsTool
 import SwiftParser
 import SwiftSyntax
 
-final class TypeModelCanonicalDesciptionTests: XCTestCase {
-  func testSimple() {
+struct TypeModelCanonicalDesciptionTests {
+  @Test func simple() {
     check("Foo")
     check(" Foo  ", "Foo")
   }
 
-  func testGeneric() {
+  @Test func generic() {
     check("Foo<Bar>")
     check(" Foo< Bar , Baz > ", "Foo<Bar, Baz>")
   }
 
-  func testOptional() {
+  @Test func optional() {
     check("Foo?")
   }
 
-  func testUnwrappedOptional() {
+  @Test func unwrappedOptional() {
     check("Foo!")
   }
 
-  func testTuple() {
+  @Test func tuple() {
     check("(Foo, Bar)")
     check("(Foo,Bar)", "(Foo, Bar)")
     check("(foo:Foo,  bar  :  Bar  )", "(foo: Foo, bar: Bar)")
   }
 
-  func testMember() {
+  @Test func member() {
     check("Foo.Bar")
   }
 
-  func testArray() {
+  @Test func array() {
     check("[Foo]")
   }
 
-  func testAttributed() {
+  @Test func attributed() {
     check("@foo Bar")
     check("@foo @bar Baz")
     check("@foo(bar: baz) Qux")
@@ -52,54 +52,54 @@ final class TypeModelCanonicalDesciptionTests: XCTestCase {
     check("  __shared   Bar ", "__shared Bar")
   }
 
-  func testClassRestriction() {
+  @Test func classRestriction() {
     // Only valid in protocol restrictions, which SyntaxTree doesn't support yet
   }
 
-  func testComposition() {
+  @Test func composition() {
     check("Foo & Bar & Baz")
   }
 
-  func testDictionary() {
+  @Test func dictionary() {
     check("[Foo: Bar]")
     check("[Foo:Bar]", "[Foo: Bar]")
     check("[Foo : Bar]", "[Foo: Bar]")
     check("[  Foo  :  Bar  ]", "[Foo: Bar]")
   }
 
-  func testFunction() {
+  @Test func function() {
     check("(Foo) -> Bar")
     check("(Foo)->Bar", "(Foo) -> Bar")
     check("( _ foo : Foo, _ bar:Bar) -> Baz", "(_ foo: Foo, _ bar: Bar) -> Baz")
     check("(@escaping () throws -> Foo) async -> Bar")
   }
 
-  func testMetatype() {
+  @Test func metatype() {
     check("Foo.Type")
     check("Foo.Protocol")
   }
 
-  func testNamedOpaqueReturn() {
+  @Test func namedOpaqueReturn() {
     check("<each Foo: Bar> Foo")
   }
 
-  func testPackElement() {
+  @Test func packElement() {
     check("each Foo")
   }
 
-  func testPackExpansion() {
+  @Test func packExpansion() {
     check("repeat Foo")
   }
 
-  func testSomeOrAny() {
+  @Test func someOrAny() {
     check("some Foo")
   }
 
-  func testSuppressed() {
+  @Test func suppressed() {
     check("~Foo")
   }
 
-  func testNested() {
+  @Test func nested() {
     check("@escaping (Foo<[(dict: [Bar: P1 & P2], Baz.Qux!?)]>) -> Void")
   }
 }
@@ -138,7 +138,8 @@ func check(
   )
   let tl = sxtTree.first
   guard let got = tl.flatMap({ policy.extract($0)?.description }) else {
-    return XCTFail("Failed to extract type model")
+    Issue.record("Failed to extract type model")
+    return
   }
-  XCTAssertEqual(got, output)
+  #expect(got == output)
 }

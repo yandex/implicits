@@ -1,13 +1,13 @@
 // Copyright 2024 Yandex LLC. All rights reserved.
 
-import XCTest
+import Testing
 
 import ImplicitsTool
 
-fileprivate typealias TestAutomaton = Automaton<Character, Int>
+private typealias TestAutomaton = Automaton<Character, Int>
 
-final class AutomatonTests: XCTestCase {
-  func testExact() {
+struct AutomatonTests {
+  @Test func exact() {
     var me = TestAutomaton()
     me.addPattern(.exact("a"), value: 1)
     me.addPattern(.exact("b"), value: 2)
@@ -19,7 +19,7 @@ final class AutomatonTests: XCTestCase {
     me.check("d", expected: [])
   }
 
-  func testSequence() {
+  @Test func sequence() {
     var me = TestAutomaton()
     me.addPattern(["a", "b", "c"], value: 1)
     me.addPattern(["a", "b"], value: 2)
@@ -30,7 +30,7 @@ final class AutomatonTests: XCTestCase {
     me.check("a1b", expected: [])
   }
 
-  func testOptional() {
+  @Test func optional() {
     var me = TestAutomaton()
     me.addPattern(["a", .optional("b"), "c"], value: 1)
     me.addPattern(["a", "c"], value: 2)
@@ -41,7 +41,7 @@ final class AutomatonTests: XCTestCase {
     me.check("abcd", expected: [])
   }
 
-  func testNested() {
+  @Test func nested() {
     var me = TestAutomaton()
     // 1: a(bc)?d
     me.addPattern(["a", .optional(["b", "c"]), "d"], value: 1)
@@ -57,7 +57,7 @@ final class AutomatonTests: XCTestCase {
     me.check("abcdef", expected: [])
   }
 
-  func testManyOptionalsDoesntCauseExponentialGrowth() {
+  @Test func manyOptionalsDoesntCauseExponentialGrowth() {
     let alphabet = "abcdefghijklmnopqrstuvwxyz"
     var me = TestAutomaton()
     me.addPattern(
@@ -80,7 +80,7 @@ final class AutomatonTests: XCTestCase {
     me.check("a" + alphabet, expected: [])
   }
 
-  func testZeroOrMore() {
+  @Test func zeroOrMore() {
     var me = TestAutomaton()
     me.addPattern([.zeroOrMore("a")], value: 1)
     me.addPattern(["b", .zeroOrMore("c"), "d"], value: 2)
@@ -95,7 +95,7 @@ final class AutomatonTests: XCTestCase {
     me.check("bccccd", expected: [2])
   }
 
-  func testMixed() {
+  @Test func mixed() {
     var me = TestAutomaton()
     me.addPattern(["a", .zeroOrMore("b"), "c"], value: 1)
     me.addPattern(["a", .zeroOrMore("b"), "c", "d"], value: 2)
@@ -112,10 +112,7 @@ final class AutomatonTests: XCTestCase {
 
 extension TestAutomaton {
   func check(_ input: String, expected: [Int]) {
-    XCTAssertEqual(
-      Set(match(input)),
-      Set(expected)
-    )
+    #expect(Set(match(input)) == Set(expected))
   }
 }
 

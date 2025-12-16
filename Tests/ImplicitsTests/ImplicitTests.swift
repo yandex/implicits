@@ -1,11 +1,13 @@
 // Copyright 2022 Yandex LLC. All rights reserved.
 
-import XCTest
+import Dispatch
+import Foundation
+import Testing
 
 @_spi(Unsafe) internal import Implicits
 
-final class ImplicitTests: XCTestCase {
-  func testDeclaringAndRetreivingImplicitArg() {
+struct ImplicitTests {
+  @Test func declaringAndRetrievingImplicitArg() {
     let scope = ImplicitScope()
     defer { scope.end() }
 
@@ -15,20 +17,20 @@ final class ImplicitTests: XCTestCase {
     @Implicit(\.id)
     var retrieve: Int
 
-    XCTAssertEqual(retrieve, 1)
+    #expect(retrieve == 1)
   }
 
-  func testPassingImplicitArgToFunction() {
+  @Test func passingImplicitArgToFunction() {
     let scope = ImplicitScope()
     defer { scope.end() }
 
     @Implicit(\.id)
     var id = 2
 
-    XCTAssertEqual(get(\.id, scope), 2)
+    #expect(get(\.id, scope) == 2)
   }
 
-  func testPassingImplicitArgToStructField() {
+  @Test func passingImplicitArgToStructField() {
     let scope = ImplicitScope()
     defer { scope.end() }
 
@@ -42,10 +44,10 @@ final class ImplicitTests: XCTestCase {
     @Implicit(\.id)
     var id = 3
 
-    XCTAssertEqual(WithID(scope).id, 3)
+    #expect(WithID(scope).id == 3)
   }
 
-  func testPassingMultipleImplicitArgsToStructFields() {
+  @Test func passingMultipleImplicitArgsToStructFields() {
     let scope = ImplicitScope()
     defer { scope.end() }
 
@@ -60,19 +62,19 @@ final class ImplicitTests: XCTestCase {
 
     let res = MultipleIDs(scope)
 
-    XCTAssertEqual(res.id, 3)
-    XCTAssertEqual(res.launchID, 4)
-    XCTAssertEqual(res.deviceID(), 5)
+    #expect(res.id == 3)
+    #expect(res.launchID == 4)
+    #expect(res.deviceID() == 5)
   }
 
-  func testPushingContext() {
+  @Test func pushingContext() {
     func declareAndCheck(_ id: Int, _ scope: ImplicitScope) {
       let scope = scope.nested()
       defer { scope.end() }
 
       @Implicit(\.id)
       var id = id
-      XCTAssertEqual(get(\.id, scope), id)
+      #expect(get(\.id, scope) == id)
     }
 
     let scope = ImplicitScope()
@@ -85,12 +87,12 @@ final class ImplicitTests: XCTestCase {
 
     declareAndCheck(3, scope)
 
-    XCTAssertEqual(get(\.id, scope), 2)
+    #expect(get(\.id, scope) == 2)
 
     declareAndCheck(4, scope)
   }
 
-  func testImplicitInMultipleThreadsAreIndependant() {
+  @Test func implicitInMultipleThreadsAreIndependent() {
     let t1Pushed = DispatchSemaphore(value: 0)
     let t2Pushed = DispatchSemaphore(value: 0)
     let t1Declared = DispatchSemaphore(value: 0)
@@ -122,7 +124,7 @@ final class ImplicitTests: XCTestCase {
       // wait for t2 to retrieve implicit
       t2Retrieved.wait()
 
-      XCTAssertEqual(got, 1)
+      #expect(got == 1)
       t1Finished.signal()
     }
 
@@ -148,7 +150,7 @@ final class ImplicitTests: XCTestCase {
       let got = get(\.id, scope)
       t2Retrieved.signal()
 
-      XCTAssertEqual(got, 2)
+      #expect(got == 2)
       t2Finished.signal()
     }
 
@@ -159,7 +161,7 @@ final class ImplicitTests: XCTestCase {
     t2Finished.wait()
   }
 
-  func testMultipleImplicitsInMultipleThreadsAreIndependant() {
+  @Test func multipleImplicitsInMultipleThreadsAreIndependent() {
     let t1Pushed = DispatchSemaphore(value: 0)
     let t2Pushed = DispatchSemaphore(value: 0)
     let t1Declared = DispatchSemaphore(value: 0)
@@ -198,9 +200,9 @@ final class ImplicitTests: XCTestCase {
       // wait for t2 to retrieve implicit
       t2Retrieved.wait()
 
-      XCTAssertEqual(got.id, 1)
-      XCTAssertEqual(got.launchID, 2)
-      XCTAssertEqual(got.deviceID(), 3)
+      #expect(got.id == 1)
+      #expect(got.launchID == 2)
+      #expect(got.deviceID() == 3)
       t1Finished.signal()
     }
 
@@ -233,9 +235,9 @@ final class ImplicitTests: XCTestCase {
       let got = MultipleIDs(scope)
       t2Retrieved.signal()
 
-      XCTAssertEqual(got.id, 4)
-      XCTAssertEqual(got.launchID, 5)
-      XCTAssertEqual(got.deviceID(), 6)
+      #expect(got.id == 4)
+      #expect(got.launchID == 5)
+      #expect(got.deviceID() == 6)
       t2Finished.signal()
     }
 
@@ -246,7 +248,7 @@ final class ImplicitTests: XCTestCase {
     t2Finished.wait()
   }
 
-  func testCapturingImplicits() {
+  @Test func capturingImplicits() {
     let scope = ImplicitScope()
     defer { scope.end() }
 
@@ -288,17 +290,17 @@ final class ImplicitTests: XCTestCase {
     }
 
     let got = multipleIDsFactory()
-    XCTAssertEqual(got.id, 1)
-    XCTAssertEqual(got.launchID, 2)
-    XCTAssertEqual(got.deviceID(), 3)
+    #expect(got.id == 1)
+    #expect(got.launchID == 2)
+    #expect(got.deviceID() == 3)
 
     let got2 = withRewritenIDs(multipleIDsFactory, scope)
-    XCTAssertEqual(got2.id, 1)
-    XCTAssertEqual(got2.launchID, 2)
-    XCTAssertEqual(got2.deviceID(), 3)
+    #expect(got2.id == 1)
+    #expect(got2.launchID == 2)
+    #expect(got2.deviceID() == 3)
   }
 
-  func testTypeKey() {
+  @Test func typeKey() {
     let scope = ImplicitScope()
     defer { scope.end() }
 
@@ -307,14 +309,14 @@ final class ImplicitTests: XCTestCase {
 
     @Implicit()
     var got: String
-    XCTAssertEqual(got, "1")
+    #expect(got == "1")
 
     @Implicit
     var id2 = "2"
 
     @Implicit()
     var got2: String
-    XCTAssertEqual(got2, "2")
+    #expect(got2 == "2")
 
     let idFactory = {
       [implicits = Implicits(
@@ -327,10 +329,10 @@ final class ImplicitTests: XCTestCase {
       return id
     }
 
-    XCTAssertEqual(idFactory(), "2")
+    #expect(idFactory() == "2")
   }
 
-  func testMappingKeySpecifierToKeySpecifier() {
+  @Test func mappingKeySpecifierToKeySpecifier() {
     let scope = ImplicitScope()
     defer { scope.end() }
 
@@ -340,11 +342,11 @@ final class ImplicitTests: XCTestCase {
     Implicit.map(\.id, to: \.launchID) { $0 }
     Implicit.map(\.id, to: \.deviceID) { id in { id } }
 
-    XCTAssertEqual(get(\.launchID, scope), 1)
-    XCTAssertEqual(get(\.deviceID, scope)(), 1)
+    #expect(get(\.launchID, scope) == 1)
+    #expect(get(\.deviceID, scope)() == 1)
   }
 
-  func testMappingKeySpecifierToType() {
+  @Test func mappingKeySpecifierToType() {
     let scope = ImplicitScope()
     defer { scope.end() }
 
@@ -352,10 +354,10 @@ final class ImplicitTests: XCTestCase {
     var i = 1
 
     Implicit.map(\.id, to: Int.self) { $0 }
-    XCTAssertEqual(get(Int.self, scope), 1)
+    #expect(get(Int.self, scope) == 1)
   }
 
-  func testMappingTypeToKeySpecifier() {
+  @Test func mappingTypeToKeySpecifier() {
     let scope = ImplicitScope()
     defer { scope.end() }
 
@@ -363,10 +365,10 @@ final class ImplicitTests: XCTestCase {
     var i = 1
 
     Implicit.map(Int.self, to: \.id) { $0 }
-    XCTAssertEqual(get(\.id, scope), 1)
+    #expect(get(\.id, scope) == 1)
   }
 
-  func testMappingTypeToType() {
+  @Test func mappingTypeToType() {
     let scope = ImplicitScope()
     defer { scope.end() }
 
@@ -374,7 +376,7 @@ final class ImplicitTests: XCTestCase {
     var i = 1
 
     Implicit.map(Int.self, to: String.self, String.init)
-    XCTAssertEqual(get(String.self, scope), "1")
+    #expect(get(String.self, scope) == "1")
   }
 }
 

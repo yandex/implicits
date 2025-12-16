@@ -7,7 +7,11 @@ import PackageDescription
 let package = Package(
   name: "implicits",
   platforms: [
-    .macOS(.v13),
+    .macOS(.v11),
+    .iOS(.v14),
+    .watchOS(.v7),
+    .tvOS(.v14),
+    .visionOS(.v1),
   ],
   products: [
     .library(name: "Implicits", targets: ["Implicits"]),

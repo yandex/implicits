@@ -1,25 +1,25 @@
 // Copyright 2024 Yandex LLC. All rights reserved.
 
-import XCTest
+import Testing
 
 import ImplicitsTool
 
-final class PublicInterfaceSerializationTests: XCTestCase {
-  func testSymbolSerialization() {
+struct PublicInterfaceSerializationTests {
+  @Test func symbolSerialization() {
     check(initSymbol)
     check(staticSymbol)
     check(memberSymbol)
   }
 
-  func testInterfaceSerialization() {
+  @Test func interfaceSerialization() {
     check(interface)
   }
 
-  func testInterface2Serialization() {
+  @Test func interface2Serialization() {
     check(interface2)
   }
 
-  func testEmptyInterfaceSerialization() {
+  @Test func emptyInterfaceSerialization() {
     check(ImplicitModuleInterface(
       module: "EmptyModule", symbols: [], testableSymbols: [],
       definedKeypathKeys: [],

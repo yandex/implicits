@@ -1,6 +1,6 @@
 // Copyright 2023 Yandex LLC. All rights reserved.
 
-import XCTest
+import Testing
 
 import ImplicitsMacros
 import SwiftSyntaxMacros
@@ -10,8 +10,8 @@ private let testMacros: [String: Macro.Type] = [
   "implicits": ImplicitMacro.self,
 ]
 
-final class ImplicitMacroTests: XCTestCase {
-  func testImplicitMacro() throws {
+struct ImplicitMacroTests {
+  @Test func implicitMacro() throws {
     assertMacroExpansion(
       """
       let c = { [implictis = #implicits] in 42 }

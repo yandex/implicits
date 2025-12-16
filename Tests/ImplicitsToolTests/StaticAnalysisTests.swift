@@ -1,76 +1,76 @@
 // Copyright 2023 Yandex LLC. All rights reserved.
 
-import XCTest
+import Testing
 
-final class StaticAnalysisTests: XCTestCase {
-  func testSyntaxStructure() {
+struct StaticAnalysisTests {
+  @Test func syntaxStructure() {
     verify(file: "syntax_structure.swift")
   }
 
-  func testBasicGraph() {
+  @Test func basicGraph() {
     verify(file: "graph_basic.swift")
   }
 
-  func testNestedScopes() {
+  @Test func nestedScopes() {
     verify(file: "nested_scope.swift")
   }
 
-  func testRecursion() {
+  @Test func recursion() {
     verify(file: "graph_recursion.swift")
   }
 
-  func testObjectScope() {
+  @Test func objectScope() {
     verify(file: "object_scope.swift")
   }
 
-  func testSymbolResolution() {
+  @Test func symbolResolution() {
     verify(file: "symbol_resolution.swift")
   }
 
-  func testImplicitBag() {
+  @Test func implicitBag() {
     verify(file: "implicit_bag.swift")
   }
 
-  func testStoredImplicitBag() {
+  @Test func storedImplicitBag() {
     verify(file: "stored_implicit_bag.swift")
   }
 
-  func testImplicitScopeOrder() {
+  @Test func implicitScopeOrder() {
     verify(file: "implicit_scope_order.swift")
   }
 
-  func testKeyResolving() {
+  @Test func keyResolving() {
     verify(file: "key_resolving.swift")
   }
 
-  func testExpressions() {
+  @Test func expressions() {
     verify(file: "expressions.swift")
   }
 
-  func testImplicitMap() {
+  @Test func implicitMap() {
     verify(file: "implicit_map.swift")
   }
 
-  func testWithScope() {
+  @Test func withScope() {
     verify(file: "with_scope.swift")
   }
 
-  func testGeneratedInit() {
+  @Test func generatedInit() {
     verify(file: "generated_init.swift")
   }
 
-  func testTypeResolution() {
+  @Test func typeResolution() {
     verify(file: "type_resolution.swift")
   }
 
-  func testMultipleFileResolution() {
+  @Test func multipleFileResolution() {
     verify(files: [
       "multiple_file_resolution_f1.swift",
       "multiple_file_resolution_f2.swift",
     ])
   }
 
-  func testUsingImplicitInterface() {
+  @Test func usingImplicitInterface() {
     verify(
       files: [
         "using_implicit_interface.swift",
@@ -79,7 +79,7 @@ final class StaticAnalysisTests: XCTestCase {
     )
   }
 
-  func testUsingTestableImplicitInterface() {
+  @Test func usingTestableImplicitInterface() {
     verify(
       files: [
         "using_testable_implicit_interface.swift",
@@ -88,11 +88,11 @@ final class StaticAnalysisTests: XCTestCase {
     )
   }
 
-  func testExporting() {
+  @Test func exporting() {
     verify(file: "exporting.swift", enableExporting: true)
   }
 
-  func testSupportFile() {
+  @Test func supportFile() {
     verify(
       files: ["support_file.swift"],
       enableExporting: true,
