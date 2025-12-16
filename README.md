@@ -1,6 +1,38 @@
 # Implicits
 
+[![CI](https://github.com/yandex/implicits/actions/workflows/ci.yml/badge.svg)](https://github.com/yandex/implicits/actions/workflows/ci.yml)
+![Swift 6.2+](https://img.shields.io/badge/Swift-6.2+-F05138.svg)
+![macOS 13+](https://img.shields.io/badge/macOS-13+-007AFF.svg)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+
 A Swift library for implicit parameter passing through call stacks, similar to implicit parameters in Scala or context receivers in Kotlin.
+
+## Requirements
+
+- Swift 6.2+
+- macOS 13+
+
+## Installation
+
+Add Implicits to your `Package.swift`:
+
+```swift
+dependencies: [
+    .package(url: "https://github.com/yandex/implicits", from: "1.0.0"),
+]
+```
+
+Then add the library to your target:
+
+```swift
+.target(
+    name: "MyApp",
+    dependencies: ["Implicits"],
+    plugins: ["ImplicitsAnalysisPlugin"]  // Compile-time validation
+)
+```
+
+The `ImplicitsAnalysisPlugin` performs static analysis at build time to verify that all implicit parameters are properly provided through the call chain.
 
 ### The Problem
 
@@ -35,33 +67,7 @@ This pattern, known as parameter drilling, requires passing the same arguments t
 
 ### The Solution
 
-With Implicits, parameters can be made available throughout the call stack without explicit passing at every level:
-
-```swift
-func goShopping() {
-  goToGroceryStore()
-  goToClothesStore()
-}
-
-func goToGroceryStore() { pay() }
-func goToClothesStore() { pay() }
-
-func pay() {
-  // Access money and discountCard implicitly
-  @Implicit var money: Money
-  @Implicit var discountCard: DiscountCard
-  money.amount -= 100 * (1 - discountCard.discount)
-}
-
-// Usage – declare once, use anywhere in the call stack
-@Implicit var money = Money(amount: 1000)
-@Implicit var discountCard = DiscountCard(discount: 0.05)
-goShopping()
-```
-
-### How It Works
-
-Due to Swift's current limitations, we need to pass a lightweight scope object through the call stack. Here's the real-world implementation:
+With Implicits, you declare values once and access them anywhere in the call stack without explicit parameter passing:
 
 ```swift
 func goShopping(_ scope: ImplicitScope) {
@@ -73,6 +79,7 @@ func goToGroceryStore(_ scope: ImplicitScope) { pay(scope) }
 func goToClothesStore(_ scope: ImplicitScope) { pay(scope) }
 
 func pay(_: ImplicitScope) {
+  // Access money and discountCard implicitly — no parameters needed!
   @Implicit var money: Money
   @Implicit var discountCard: DiscountCard
   money.amount -= 100 * (1 - discountCard.discount)
@@ -87,7 +94,7 @@ defer { scope.end() }
 goShopping(scope)
 ```
 
-The scope object provides explicit control over data flow while eliminating the need for parameter drilling. This approach maintains type safety and clear lifetime semantics.
+> **Note:** Due to Swift's current limitations, a lightweight `ImplicitScope` object must be passed through the call stack. However, the actual data (`money`, `discountCard`) doesn't need to be passed — it's accessed implicitly via `@Implicit`.
 
 ### Usage Guide
 
@@ -223,7 +230,7 @@ This pattern allows factory methods to access dependencies available during init
 By default, Implicits uses the **type itself as the key**. But what if you need multiple values of the same type?
 
 ```swift
-extension ImplicitKeys {
+extension ImplicitsKeys {
   // Define a unique key for a specific Bool variable
   static let incognitoModeEnabled = 
     Key<ObservableVariable<Bool>>()
@@ -357,34 +364,33 @@ p ImplicitScope.dumpCurrent().keys
 
 Example output:
 ```
-([String]) 7 values {
-  [0] = "(extension in MordaKit):Implicits.ImplicitsKeys._CardsTabManagerButtonIconEnabledTag"
-  [1] = "(extension in SearchAppSearch):Implicits.ImplicitsKeys._EnableBottomBarFullHideTag"
-  [2] = "(extension in SearchAppSearch):Implicits.ImplicitsKeys._EnableRedProgressBarForOmniboxLoadingTag"
-  [3] = "(extension in SearchAppSearch):Implicits.ImplicitsKeys._HideBottomBarOnSERPTag"
-  [4] = "Base.Telemetry"
-  [5] = "Swift.Optional<VGSLFundamentals.Variable<OmniboxKit.OmniboxMultifunctionalContent>>"
-  [6] = "VGSLFundamentals.Variable<Swift.Optional<__C.CLLocation>>"
+([String]) 4 values {
+  [0] = "(extension in MyApp):Implicits.ImplicitsKeys._DarkModeEnabledTag"
+  [1] = "(extension in MyApp):Implicits.ImplicitsKeys._AnalyticsEnabledTag"
+  [2] = "MyApp.NetworkService"
+  [3] = "MyApp.DatabaseService"
 }
 ```
 
 **Search for specific implicits (case-insensitive):**
 ```shell
-p ImplicitScope.dumpCurrent()[like: "telemetry"]
+p ImplicitScope.dumpCurrent()[like: "network"]
 ```
 
 Example output:
 ```
 ([Implicits.ImplicitScope.DebugCollection.Element]) 1 value {
   [0] = {
-    key = "Base.Telemetry"
-    value = {
-      analytics = ...
-    }
+    key = "MyApp.NetworkService"
+    value = <NetworkService instance>
   }
 }
 ```
 
+### Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
+
 ### License
 
-See LICENSE file for details.
+Apache 2.0. See [LICENSE](LICENSE) for details.
