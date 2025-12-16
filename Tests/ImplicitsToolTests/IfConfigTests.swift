@@ -1,22 +1,22 @@
 // Copyright 2025 Yandex LLC. All rights reserved.
 
-import XCTest
+import Testing
 
 @_spi(Testing)
 import ImplicitsTool
 import SwiftParser
 import SwiftSyntax
 
-final class IfConfigTests: XCTestCase {
-  func testConditionEvaluator() throws {
+struct IfConfigTests {
+  @Test func conditionEvaluator() throws {
     func check(_ e: String, _ expected: Bool?) {
       var parser = Parser(e)
       let e = ExprSyntax.parse(from: &parser)
       let res = evaluateCondition(
         e, config: .enabled(["A", "B", "C"])
       )
-      XCTAssertEqual(
-        res, expected,
+      #expect(
+        res == expected,
         "Expected \(e) to be \(expected.descr), but got \(res.descr)"
       )
     }
@@ -55,15 +55,14 @@ final class IfConfigTests: XCTestCase {
     check("A = B", nil)
   }
 
-  func testIfConfig() throws {
+  @Test func ifConfig() throws {
     func check(_ e: String, _ expected: String) {
       let syntax = Syntax(Parser.parse(source: e))
       let removed = removingInactiveIfConfig(
         syntax, config: .enabled(["A", "B", "C"])
       ).description
-      XCTAssertEqual(
-        removed.trim(\.isWhitespace),
-        expected.trim(\.isWhitespace),
+      #expect(
+        removed.trim(\.isWhitespace) == expected.trim(\.isWhitespace),
         "Expected \n\(e) to reduce into \n\(expected), but got \n\(removed)"
       )
     }

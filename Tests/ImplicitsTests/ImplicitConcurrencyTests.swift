@@ -1,11 +1,11 @@
 // Copyright 2024 Yandex LLC. All rights reserved.
 
-import XCTest
+import Testing
 
 @_spi(Unsafe) internal import Implicits
 
-final class ImplicitConcurrencyTests: XCTestCase {
-  func testRetrievingInDifferentContext() async {
+struct ImplicitConcurrencyTests {
+  @Test func retrievingInDifferentContext() async {
     let scope = ImplicitScope()
     defer { scope.end() }
 
@@ -15,19 +15,19 @@ final class ImplicitConcurrencyTests: XCTestCase {
     let actor = SomeActor()
     let retrieved = await actor.testActorImplicit(scope)
 
-    XCTAssertEqual(retrieved, 1)
+    #expect(retrieved == 1)
   }
 
-  func testCreateRootScopeInActor() async {
+  @Test func createRootScopeInActor() async {
     let actor = SomeActor()
     let retrieved = await actor.createRootScope(id: 42)
 
-    XCTAssertEqual(retrieved, 42)
+    #expect(retrieved == 42)
   }
 
-  func testCreateRootScopeInMainActor() async {
+  @Test func createRootScopeInMainActor() async {
     let retrieved = await testMainActor(id: 81)
-    XCTAssertEqual(retrieved, 81)
+    #expect(retrieved == 81)
   }
 }
 
@@ -57,7 +57,7 @@ private func syncContext(_ scope: ImplicitScope) {
   @Implicit(\.id)
   var got
 
-  XCTAssertEqual(got, -1)
+  #expect(got == -1)
 }
 
 private func asyncGetId(_ scope: ImplicitScope) async -> Int {

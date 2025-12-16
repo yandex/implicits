@@ -29,3 +29,6 @@ jobs:
 
       - name: Build ShowcaseDependency (static analysis)
         run: swift build --target ShowcaseDependency
+
+      - name: Test Implicits for iOS
+        run: swift test --filter ImplicitsTests --sdk $(xcrun --sdk iphonesimulator --show-sdk-path) --triple arm64-apple-ios14.0-simulator

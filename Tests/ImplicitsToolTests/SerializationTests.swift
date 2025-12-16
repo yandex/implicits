@@ -1,11 +1,12 @@
 // Copyright 2024 Yandex LLC. All rights reserved.
 
-import XCTest
+import Foundation
+import Testing
 
 import ImplicitsTool
 
-final class SerializationTests: XCTestCase {
-  func testIntegers() {
+struct SerializationTests {
+  @Test func integers() {
     check(UInt8.min)
     check(UInt8(13))
     check(UInt8.max)
@@ -17,13 +18,13 @@ final class SerializationTests: XCTestCase {
     check(Int32(-1_300_000))
   }
 
-  func testStrings() {
+  @Test func strings() {
     check("")
     check("Hello, world!")
     check("🚀")
   }
 
-  func testArrays() {
+  @Test func arrays() {
     check([Int32]())
     check([Int32(-5), 2, 3])
     check([[[Int32]]]())
@@ -32,7 +33,7 @@ final class SerializationTests: XCTestCase {
     check([["a", "b"], ["c", "d"], ["e", "f"]])
   }
 
-  func testInvalidDataError() throws {
+  @Test func invalidDataError() throws {
     enum Foo: UInt8, Serializable {
       case a = 1, b = 2
     }
@@ -41,14 +42,16 @@ final class SerializationTests: XCTestCase {
     }
     let value = Foo.b
     let bytes = try value.testSerialize()
-    XCTAssertThrowsError(try Bar.testDeserialize(from: bytes))
+    #expect(throws: SerializationError.self) {
+      try Bar.testDeserialize(from: bytes)
+    }
   }
 
-  func testUntrivialTypes() {
+  @Test func untrivialTypes() {
     check(Parent(bar: 42))
     let child = Child(bar: 0, baz: 0)
     let child2 = Child(bar: 0, baz: 1)
-    XCTAssertNotEqual(child, child2)
+    #expect(child != child2)
     check([Pointer(child), Pointer(child2)])
   }
 

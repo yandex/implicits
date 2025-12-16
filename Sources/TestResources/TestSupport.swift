@@ -20,7 +20,7 @@ public final class TestSupport {
   public static func pathToSourceFile(_ name: String) -> String {
     var currentURL = URL(fileURLWithPath: #filePath)
     currentURL.deleteLastPathComponent()
-    currentURL.append(path: "test_data", directoryHint: .isDirectory)
+    currentURL.appendPathComponent("test_data")
     currentURL.appendPathComponent(name)
     return currentURL.path
   }

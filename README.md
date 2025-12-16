@@ -2,15 +2,23 @@
 
 [![CI](https://github.com/yandex/implicits/actions/workflows/ci.yml/badge.svg)](https://github.com/yandex/implicits/actions/workflows/ci.yml)
 ![Swift 6.2+](https://img.shields.io/badge/Swift-6.2+-F05138.svg)
-![macOS 13+](https://img.shields.io/badge/macOS-13+-007AFF.svg)
+![macOS 11+](https://img.shields.io/badge/macOS-11+-007AFF.svg)
+![iOS 14+](https://img.shields.io/badge/iOS-14+-007AFF.svg)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-A Swift library for implicit parameter passing through call stacks, similar to implicit parameters in Scala or context receivers in Kotlin.
+A Swift library for implicit parameter passing through call stacks. Eliminate parameter drilling and simplify dependency injection with compile-time safety.
 
-## Requirements
+## Table of Contents
 
-- Swift 6.2+
-- macOS 13+
+- [Installation](#installation)
+- [The Problem](#the-problem)
+- [The Solution](#the-solution)
+- [Usage Guide](#usage-guide)
+- [Build-Time Analysis](#build-time-analysis)
+- [Runtime Debugging](#runtime-debugging)
+- [Alternatives](#alternatives)
+- [Related Concepts](#related-concepts)
+- [Contributing](#contributing)
 
 ## Installation
 
@@ -27,76 +35,76 @@ Then add the library to your target:
 ```swift
 .target(
     name: "MyApp",
-    dependencies: ["Implicits"],
-    plugins: ["ImplicitsAnalysisPlugin"]  // Compile-time validation
+    dependencies: [.product(name: "Implicits", package: "implicits")],
+    plugins: [.plugin(name: "ImplicitsAnalysisPlugin", package: "implicits")]
 )
 ```
 
 The `ImplicitsAnalysisPlugin` performs static analysis at build time to verify that all implicit parameters are properly provided through the call chain.
 
-### The Problem
+## The Problem
 
-Consider a simple shopping simulation where we need to pass payment details through multiple function layers:
+Consider a simple shopping scenario where we need to pass payment details through multiple function layers:
 
 ```swift
-func goShopping(money: Money, discountCard: DiscountCard) {
-  goToGroceryStore(money: money, discountCard: discountCard)
-  goToClothesStore(money: money, discountCard: discountCard)
+func goShopping(wallet: Wallet, card: DiscountCard) {
+  buyGroceries(wallet: wallet, card: card)
+  buyClothes(wallet: wallet, card: card)
+  buyCoffee(wallet: wallet, card: card)
 }
 
-func goToGroceryStore(money: Money, discountCard: DiscountCard) {
-  pay(money: money, discountCard: discountCard)
+func buyGroceries(wallet: Wallet, card: DiscountCard) {
+  pay(50, wallet: wallet, card: card)
 }
 
-func goToClothesStore(money: Money, discountCard: DiscountCard) {
-  pay(money: money, discountCard: discountCard)
+func buyClothes(wallet: Wallet, card: DiscountCard) {
+  pay(200, wallet: wallet, card: card)
 }
 
-func pay(money: Money, discountCard: DiscountCard) {
-  money.amount -= 100 * (1 - discountCard.discount)
+func buyCoffee(wallet: Wallet, card: DiscountCard) {
+  pay(5, wallet: wallet, card: card)
 }
 
-// Usage
-goShopping(
-  money: Money(amount: 1000),
-  discountCard: DiscountCard(discount: 0.05)
-)
+func pay(_ price: Int, wallet: Wallet, card: DiscountCard) {
+  wallet.charge(price * (1 - card.discount))
+}
 ```
 
-This pattern, known as parameter drilling, requires passing the same arguments through every layer of the call stack, even when intermediate functions don't use them. This creates unnecessary coupling and makes refactoring more difficult.
+This pattern, known as parameter drilling, requires passing the same arguments through every layer of the call stack, even when intermediate functions don't use them directly. In this simple example the savings may seem modest, but imagine dozens of parameters flowing through many layers — the boilerplate adds up quickly.
 
-### The Solution
+## The Solution
 
-With Implicits, you declare values once and access them anywhere in the call stack without explicit parameter passing:
+With Implicits, you declare values once and access them anywhere in the call stack:
 
 ```swift
 func goShopping(_ scope: ImplicitScope) {
-  goToGroceryStore(scope)
-  goToClothesStore(scope)
+  buyGroceries(scope)
+  buyClothes(scope)
+  buyCoffee(scope)
 }
 
-func goToGroceryStore(_ scope: ImplicitScope) { pay(scope) }
-func goToClothesStore(_ scope: ImplicitScope) { pay(scope) }
+func buyGroceries(_ scope: ImplicitScope) { pay(50, scope) }
+func buyClothes(_ scope: ImplicitScope) { pay(200, scope) }
+func buyCoffee(_ scope: ImplicitScope) { pay(5, scope) }
 
-func pay(_: ImplicitScope) {
-  // Access money and discountCard implicitly — no parameters needed!
-  @Implicit var money: Money
-  @Implicit var discountCard: DiscountCard
-  money.amount -= 100 * (1 - discountCard.discount)
+func pay(_ price: Int, _: ImplicitScope) {
+  @Implicit var wallet: Wallet
+  @Implicit var card: DiscountCard
+  wallet.charge(price * (1 - card.discount))
 }
 
 // Usage
 let scope = ImplicitScope()
 defer { scope.end() }
 
-@Implicit var money = Money(amount: 1000)
-@Implicit var discountCard = DiscountCard(discount: 0.05)
+@Implicit var wallet = Wallet(balance: 500)
+@Implicit var card = DiscountCard(discount: 0.1)
 goShopping(scope)
 ```
 
-> **Note:** Due to Swift's current limitations, a lightweight `ImplicitScope` object must be passed through the call stack. However, the actual data (`money`, `discountCard`) doesn't need to be passed — it's accessed implicitly via `@Implicit`.
+> **Note:** Due to Swift's current limitations, a lightweight `ImplicitScope` object must be passed through the call stack. However, the actual data (`wallet`, `card`) doesn't need to be passed — it's accessed implicitly via `@Implicit`.
 
-### Usage Guide
+## Usage Guide
 
 Implicit arguments behave like local variables that are accessible throughout the call stack. They follow standard Swift scoping rules and lifetime management.
 
@@ -132,16 +140,16 @@ func appDidFinishLaunching() {
 
   // Components can now access these dependencies
   @Implicit
-  let omnibox = OmniboxComponent(scope)
+  let search = SearchComponent(scope)
 
   @Implicit
-  let webContents = WebContentsComponent(scope)
+  let feed = FeedComponent(scope)
 
   @Implicit
-  let tabs = TabsComponent(scope)
+  let profile = ProfileComponent(scope)
 
-  let browser = Browser(scope)
-  browser.start()
+  let app = App(scope)
+  app.start()
 }
 ```
 
@@ -152,7 +160,7 @@ In this example, we establish a dependency injection container where services ar
 Sometimes you need to add local implicit arguments without polluting the parent scope:
 
 ```swift
-class OmniboxComponent {
+class SearchComponent {
   // Access implicit from parent scope
   @Implicit()
   var databaseService: DatabaseService
@@ -166,7 +174,7 @@ class OmniboxComponent {
     @Implicit
     var imageService = ImageService(scope)
 
-    self.thumbnailsService = ThumbnailsService(scope)
+    self.suggestionsService = SuggestionsService(scope)
   }
 }
 ```
@@ -181,14 +189,14 @@ class OmniboxComponent {
 Closures require special handling to capture implicit context:
 
 ```swift
-class WebContentsComponent {
+class FeedComponent {
   init(_ scope: ImplicitScope) {
     // Using the #implicits macro (recommended)
-    self.webContentFactory = {
+    self.postFactory = {
       [implicits = #implicits] in
       let scope = ImplicitScope(with: implicits)
       defer { scope.end() }
-      return WebContent(scope)
+      return Post(scope)
     }
   }
 }
@@ -201,24 +209,24 @@ The `#implicits` macro captures the necessary implicit arguments. The analyzer d
 When creating factory methods that need access to implicit dependencies:
 
 ```swift
-class TabsComponent {
+class ProfileComponent {
   // Store implicit context at instance level
   let implicits = #implicits
-  
+
   @Implicit()
   var networkService: NetworkService
-  
+
   @Implicit()
-  var omniboxComponent: OmniboxComponent
+  var searchComponent: SearchComponent
 
   init(_ scope: ImplicitScope) {}
 
-  func makeTab() -> Tab {
+  func makeScreen() -> Screen {
     // Create new scope with stored context
     let scope = ImplicitScope(with: implicits)
     defer { scope.end() }
-    
-    return Tab(scope)
+
+    return Screen(scope)
   }
 }
 ```
@@ -232,16 +240,16 @@ By default, Implicits uses the **type itself as the key**. But what if you need 
 ```swift
 extension ImplicitsKeys {
   // Define a unique key for a specific Bool variable
-  static let incognitoModeEnabled = 
+  static let guestModeEnabled =
     Key<ObservableVariable<Bool>>()
 }
 
-class TabsComponent {
+class ProfileComponent {
   let implicits = #implicits
-  
+
   init(_ scope: ImplicitScope) {}
-  
-  func makeTabsUI() -> TabsUI {
+
+  func makeProfileUI() -> ProfileUI {
     let scope = ImplicitScope(with: implicits)
     defer { scope.end() }
 
@@ -250,10 +258,10 @@ class TabsComponent {
     var db: DatabaseService
 
     // Named key for specific semantic meaning
-    @Implicit(\.incognitoModeEnabled)
-    var incognitoModeEnabled = db.incognitoMode.enabled
+    @Implicit(\.guestModeEnabled)
+    var guestModeEnabled = db.settings.guestModeEnabled
 
-    return TabsUI(scope)
+    return ProfileUI(scope)
   }
 }
 ```
@@ -269,11 +277,11 @@ var networkService: NetworkService
 
 // Type key: Singleton service
 @Implicit()
-var tabManager: TabManager
+var screenManager: ScreenManager
 
 // Named key provides clarity when type would be ambiguous
-@Implicit(\.incognitoModeEnabled)
-var incognitoModeEnabled: ObservableVariable<Bool>
+@Implicit(\.guestModeEnabled)
+var guestModeEnabled: ObservableVariable<Bool>
 
 @Implicit(\.darkModeEnabled)
 var darkModeEnabled: ObservableVariable<Bool>
@@ -284,7 +292,7 @@ var darkModeEnabled: ObservableVariable<Bool>
 Need to derive one implicit from another? Use the `map` function:
 
 ```swift
-class Browser {
+class App {
   @Implicit()
   var databaseService: DatabaseService
 
@@ -292,24 +300,61 @@ class Browser {
     let scope = scope.nested()
     defer { scope.end() }
 
-    // Transform DatabaseService → IncognitoStorage
-    Implicit.map(DatabaseService.self, to: \.incognitoStorage) {
-      IncognitoStorage($0)
+    // Transform DatabaseService → GuestStorage
+    Implicit.map(DatabaseService.self, to: \.guestStorage) {
+      GuestStorage($0)
     }
 
-    // Now IncognitoStorage is available as an implicit
-    self.incognitoBrowser = IncognitoBrowser(scope)
+    // Now GuestStorage is available as an implicit
+    self.guestMode = GuestMode(scope)
   }
 }
 ```
 
 This is equivalent to manually creating the derived implicit.
 
-### Build-Time Analysis
+## Build-Time Analysis
 
 The analyzer tracks implicit dependencies at compile time, generating interface files that propagate through your module dependency graph. This provides type safety and IDE integration.
 
-#### ⚠️ Current Limitations
+### SPM Plugin Integration
+
+Enable `ImplicitsAnalysisPlugin` for each target that uses Implicits:
+
+```swift
+.target(
+    name: "MyModule",
+    dependencies: [.product(name: "Implicits", package: "implicits")],
+    plugins: [.plugin(name: "ImplicitsAnalysisPlugin", package: "implicits")]
+)
+```
+
+The plugin generates `<Module>.implicitinterface` describing which functions require which implicits. This enables cross-module analysis:
+
+```
+ModuleA                        ModuleB (depends on A)
+┌─────────────────────┐        ┌──────────────────────┐
+│ func fetch(_ scope) │        │ func load(_ scope) { │
+│   @Implicit network │        │   fetch(scope)       │
+└─────────┬───────────┘        └──────────────────────┘
+          │                               ▲
+          ▼                               │ reads
+   A.implicitinterface ───────────────────┘
+   "fetch requires NetworkService"
+```
+
+When ModuleB calls `fetch(scope)`, the analyzer reads `A.implicitinterface` to discover that `fetch` requires `NetworkService`.
+
+**Important:** All intermediate modules that depend on `Implicits` must have the plugin enabled:
+
+```
+App → FeatureModule → CoreModule → Implicits
+       (plugin ✓)      (plugin ✓)
+```
+
+If any module in the chain is missing the plugin, downstream builds will fail trying to read its non-existent interface file.
+
+### Limitations
 
 Since the analyzer works at the syntax level, there are some constraints to be aware of:
 
@@ -343,7 +388,7 @@ var networkService = NetworkService()
 var networkService = services.network
 ```
 
-### Runtime Debugging
+## Runtime Debugging
 
 In DEBUG builds, Implicits provides powerful debugging tools to inspect your implicit context at runtime.
 
@@ -387,10 +432,24 @@ Example output:
 }
 ```
 
-### Contributing
+## Alternatives
+
+Other dependency injection solutions for Swift:
+
+- [swift-dependencies](https://github.com/pointfreeco/swift-dependencies) — A dependency management library inspired by SwiftUI's environment
+- [needle](https://github.com/uber/needle) — Compile-time safe dependency injection for iOS and macOS
+
+## Related Concepts
+
+Similar patterns in other languages:
+
+- **Scala** — `given`/`using` (formerly implicit parameters)
+- **Kotlin** — Context receivers
+
+## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
 
-### License
+## License
 
 Apache 2.0. See [LICENSE](LICENSE) for details.
