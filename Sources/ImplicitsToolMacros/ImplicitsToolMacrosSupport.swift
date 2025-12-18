@@ -29,19 +29,17 @@ extension DeclModifierSyntax {
   }
 }
 
-extension SwiftSyntax.ClosureShorthandParameterSyntax: Swift.ExpressibleByStringLiteral {
-  public init(stringLiteral value: String) {
-    self.init(name: TokenSyntax(stringLiteral: value))
-  }
-}
-
 extension ClosureSignatureSyntax.ParameterClause {
   static func simpleInput(
-    parameters: ClosureShorthandParameterSyntax...
+    parameters: String...
   ) -> Self {
     .simpleInput(
       ClosureShorthandParameterListSyntax(
-        itemsBuilder: { for param in parameters { param } }
+        itemsBuilder: {
+          for name in parameters {
+            ClosureShorthandParameterSyntax(name: .identifier(name))
+          }
+        }
       )
     )
   }

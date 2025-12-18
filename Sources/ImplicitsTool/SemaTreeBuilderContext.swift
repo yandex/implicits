@@ -738,7 +738,7 @@ extension SyntaxTree.TypeModel {
       return wrapped.componentsWithoutGenerics()
     case let .unwrappedOptional(wrapped):
       return wrapped.componentsWithoutGenerics()
-    case .tuple, .attributed, .classRestriction, .array,
+    case .tuple, .attributed, .classRestriction, .array, .inlineArray,
          .composition, .dictionary, .function, .metatype, .missing,
          .namedOpaqueReturn, .packElement, .packExpansion, .someOrAny,
          .suppressed:

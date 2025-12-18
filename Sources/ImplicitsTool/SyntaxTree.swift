@@ -274,6 +274,8 @@ public enum SyntaxTree<Syntax> {
     case member([TypeModel])
     /// `[T]`
     case array(TypeModel)
+    /// `[3 of T]` (InlineArray)
+    case inlineArray(count: TypeModel, element: TypeModel)
     /// `inout @Foo T`
     case attributed(specifiers: [String], [Attribute], TypeModel)
     /// `protocol P: class { ... }`
@@ -818,6 +820,8 @@ extension SyntaxTree.TypeModel {
       .member(v.map { $0.mapSyntax(t) })
     case let .array(v):
       .array(v.mapSyntax(t))
+    case let .inlineArray(count, element):
+      .inlineArray(count: count.mapSyntax(t), element: element.mapSyntax(t))
     case let .attributed(specifiers, attributes, type):
       .attributed(
         specifiers: specifiers,

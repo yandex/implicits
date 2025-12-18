@@ -724,7 +724,7 @@ enum SemaTreeBuilder<
       }
     case let .member(members):
       members.forEach { visit(typeModel: $0, syntax: syntax, errors: &errors) }
-    case .attributed, .classRestriction, .array,
+    case .attributed, .classRestriction, .array, .inlineArray,
          .composition, .dictionary, .function, .metatype, .missing,
          .namedOpaqueReturn, .packElement, .packExpansion, .someOrAny,
          .suppressed:

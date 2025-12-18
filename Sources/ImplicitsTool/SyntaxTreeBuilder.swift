@@ -526,6 +526,11 @@ extension TypeSyntax {
       parseIdentifierSyntax(
         t.name, t.genericArgumentClause, context: context
       )
+    case let .inlineArrayType(t):
+      .inlineArray(
+        count: t.count.argument.parsedType(context: context),
+        element: t.element.argument.parsedType(context: context)
+      )
     case let .implicitlyUnwrappedOptionalType(t):
       .unwrappedOptional(t.wrappedType.parsedType(context: context))
     case let .memberType(t):
@@ -803,14 +808,6 @@ extension AttributeSyntax.Arguments {
     switch self {
     case let .argumentList(labeled):
       labeled.parsedArguments(context: context)
-    case let .token(token):
-      .init([.init(
-        name: nil,
-        value: .init(
-          value: .reference(.identifier(token.trimmedDescription)),
-          syntax: token
-        )
-      )])
     default:
       nil
     }

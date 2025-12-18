@@ -56,6 +56,8 @@ extension SyntaxTree.TypeModel {
       member.map { $0.render(&policy) }.joined(separator: ".")
     case let .array(array):
       "[" + array.render(&policy) + "]"
+    case let .inlineArray(count, element):
+      "[" + count.render(&policy) + " of " + element.render(&policy) + "]"
     case let .dictionary(key, value):
       "[" + key.render(&policy) + ": " + value.render(&policy) + "]"
     case let .function(params, effects, returnType):

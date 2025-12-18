@@ -19,16 +19,16 @@ jobs:
           xcode-version: latest-stable
 
       - name: Build
-        run: swift build -v
+        run: swift build -v --enable-experimental-prebuilts
 
       - name: Run tests
-        run: SWIFT_DETERMINISTIC_HASHING=1 swift test -v --parallel
+        run: SWIFT_DETERMINISTIC_HASHING=1 swift test -v --parallel --enable-experimental-prebuilts
 
       - name: Build Showcase (static analysis)
-        run: swift build --target Showcase
+        run: swift build --target Showcase --enable-experimental-prebuilts
 
       - name: Build ShowcaseDependency (static analysis)
-        run: swift build --target ShowcaseDependency
+        run: swift build --target ShowcaseDependency --enable-experimental-prebuilts
 
       - name: Test Implicits for iOS
-        run: swift test --filter ImplicitsTests --sdk $(xcrun --sdk iphonesimulator --show-sdk-path) --triple arm64-apple-ios14.0-simulator
+        run: swift test --filter ImplicitsTests --sdk $(xcrun --sdk iphonesimulator --show-sdk-path) --triple arm64-apple-ios14.0-simulator --enable-experimental-prebuilts
