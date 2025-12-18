@@ -77,12 +77,13 @@ private let memberBlockVisitorFactory: @Sendable (CompilationConditionsConfig)
 private let codeBlockVisitorFactory: @Sendable (CompilationConditionsConfig)
   -> SyntaxVisitor<[CodeBlockEntity]> = { ifConfig in
     SyntaxVisitor<[CodeBlockEntity]>(
-      visitFunctionDecl: visitSyntax(CodeBlockStatement.declaration),
-      visitDeferStmt: visitSyntax(CodeBlockStatement.deferStmt),
-      visitClosureExpr: visitSyntax(CodeBlockStatement.closureExpr),
-      visitFunctionCallExpr: visitSyntax(CodeBlockStatement.functionCall),
-      visitVariableDecl: visitSyntax(CodeBlockStatement.declaration),
-      visitCodeBlockItemList: visitSyntax(CodeBlockStatement.codeBlockItemList),
+      visitFunctionDecl: visitSyntax(CodeBlockStatement.decl),
+      visitDeferStmt: visitSyntax { CodeBlockStatement.stmt(.defer($0)) },
+      visitDoStmt: visitSyntax { CodeBlockStatement.stmt(.do($0)) },
+      visitClosureExpr: visitSyntax { CodeBlockStatement.expr(.closure($0)) },
+      visitFunctionCallExpr: visitSyntax { CodeBlockStatement.expr(.functionCall($0)) },
+      visitVariableDecl: visitSyntax(CodeBlockStatement.decl),
+      visitCodeBlockItemList: visitSyntax { CodeBlockStatement.stmt(.other($0)) },
     ).filterInactiveIfConfig(config: ifConfig)
   }
 
@@ -375,6 +376,8 @@ extension ExprSyntax: SyntaxDescriptionProvider {
     switch self.as(ExprSyntaxEnum.self) {
     case let .functionCallExpr(e):
       .functionCall(e.syntaxDescription(context: context))
+    case let .closureExpr(e):
+      .closure(e.syntaxDescription(context: context))
     case let .macroExpansionExpr(e):
       .macroExpansion(e.macroName.text)
     case let .declReferenceExpr(e):
@@ -402,6 +405,17 @@ extension ExprSyntax: SyntaxDescriptionProvider {
 extension DeferStmtSyntax: SyntaxDescriptionProvider {
   fileprivate func syntaxDescription(context: Context) -> SXT.DeferStmt {
     body.syntaxDescription(context: context)
+  }
+}
+
+// MARK: Do-Catch Statement
+
+extension DoStmtSyntax: SyntaxDescriptionProvider {
+  fileprivate func syntaxDescription(context: Context) -> SXT.DoStmt {
+    SXT.DoStmt(
+      body: body.syntaxDescription(context: context),
+      catchBodies: catchClauses.map { $0.body.syntaxDescription(context: context) }
+    )
   }
 }
 
