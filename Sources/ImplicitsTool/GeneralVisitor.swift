@@ -36,6 +36,7 @@ struct GeneralVisitor<State>: @unchecked Sendable {
   var visitFunctionDecl: Visitor<FunctionDeclSyntax> = emptyVisitor()
   var visitInitializerDecl: Visitor<InitializerDeclSyntax> = emptyVisitor()
   var visitDeferStmt: Visitor<DeferStmtSyntax> = emptyVisitor()
+  var visitDoStmt: Visitor<DoStmtSyntax> = emptyVisitor()
   var visitClosureExpr: Visitor<ClosureExprSyntax> = emptyVisitor()
   var visitFunctionCallExpr: Visitor<FunctionCallExprSyntax> = emptyVisitor()
   var visitVariableDecl: Visitor<VariableDeclSyntax> = emptyVisitor()

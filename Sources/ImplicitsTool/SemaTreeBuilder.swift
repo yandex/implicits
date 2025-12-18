@@ -320,7 +320,7 @@ enum SemaTreeBuilder<
     context: inout Context
   ) -> [CodeBlockItem] {
     switch entity.value {
-    case let .declaration(decl):
+    case let .decl(decl):
       // Defer is a hack, so new decl will not shadow existing decls.
       // Remove when proper member resolution and scope nesting will be
       // implemented.
@@ -356,39 +356,28 @@ enum SemaTreeBuilder<
         context.diagnose(.unsupportedDeclSyntax, at: entity.syntax)
         return []
       }
-    case let .functionCall(functionCall):
-      let fcall = visit(
-        functionCall: functionCall,
+    case let .expr(expression):
+      return visit(
+        expression: expression,
         syntax: entity.syntax,
         context: &context
       )
-      switch fcall {
-      case .implicitScopeInit, .scopeNested:
-        context
-          .diagnose("[WIP] Unexpected implicit control call", at: entity.syntax)
-        return []
-      case .scopeEnd:
-        return [.init(syntax: entity.syntax, node: .implicitScopeEnd)]
-      case let .implicitMap(from: from, to: to, closure: closure):
-        return closure + .item(.implicitMap(from: from, to: to), at: entity.syntax)
-      case let .functionWithScope(fcall, array):
-        return array + [
-          .init(syntax: entity.syntax, node: .functionCall(fcall)),
-        ]
-      case let .regularFunction(argsAndCalled: items):
-        return items
-      }
-    case let .closureExpr(closure):
-      return .item(
-        .closureExpression(
-          visit(
-            closure: closure,
-            context: &context // FIXME: [context]
-          )
-        ),
-        at: entity.syntax
+    case let .stmt(statement):
+      return visit(
+        statement: statement,
+        syntax: entity.syntax,
+        context: &context
       )
-    case let .deferStmt(deferStmt):
+    }
+  }
+
+  private static func visit(
+    statement: SXT.Statement,
+    syntax: Syntax,
+    context: inout Context
+  ) -> [CodeBlockItem] {
+    switch statement {
+    case let .defer(deferStmt):
       let deferNodes = visit(
         codeBlockEntities: deferStmt,
         context: &context // FIXME: [context]
@@ -397,12 +386,23 @@ enum SemaTreeBuilder<
       deferNodes.forEach { node in
         if case .functionCall = node.node {
           context
-            .diagnose(.implicitScope_CantUseInDefer, at: entity.syntax)
+            .diagnose(.implicitScope_CantUseInDefer, at: syntax)
         }
       }
 
-      return [.init(syntax: entity.syntax, node: .deferStatement(deferNodes))]
-    case let .codeBlockItemList(codeBlock):
+      return [.init(syntax: syntax, node: .deferStatement(deferNodes))]
+    case let .do(doStmt):
+      let bodyNodes = visit(
+        codeBlockEntities: doStmt.body,
+        context: &context
+      )
+      var result: [CodeBlockItem] = .item(.innerScope(bodyNodes), at: syntax)
+      for catchBody in doStmt.catchBodies {
+        let catchNodes = visit(codeBlockEntities: catchBody, context: &context)
+        result += .item(.innerScope(catchNodes), at: syntax)
+      }
+      return result
+    case let .other(codeBlock):
       return .item(
         .innerScope(
           visit(
@@ -410,7 +410,7 @@ enum SemaTreeBuilder<
             context: &context // FIXME: [context]
           )
         ),
-        at: entity.syntax
+        at: syntax
       )
     }
   }
@@ -683,6 +683,16 @@ enum SemaTreeBuilder<
       case let .regularFunction(argsAndCalled: items):
         nodes += items
       }
+    case let .closure(closure):
+      nodes += .item(
+        .closureExpression(
+          visit(
+            closure: closure,
+            context: &context
+          )
+        ),
+        at: syntax
+      )
     case .declRef, .macroExpansion:
       break
     case let .memberAccessor(base: base, _):
@@ -887,6 +897,66 @@ enum SemaTreeBuilder<
     return .regularFunction(argsAndCalled: nested)
   }
 
+  private static func visit(
+    expression: SXT.Expression,
+    syntax: Syntax,
+    context: inout Context
+  ) -> [CodeBlockItem] {
+    switch expression {
+    case let .functionCall(functionCall):
+      return visit(
+        expressionFunctionCall: functionCall,
+        syntax: syntax,
+        context: &context
+      )
+    case let .closure(closure):
+      return .item(
+        .closureExpression(
+          visit(
+            closure: closure,
+            context: &context
+          )
+        ),
+        at: syntax
+      )
+    case .macroExpansion, .declRef, .memberAccessor:
+      return []
+    case let .other(codeBlockEntities):
+      return visit(
+        codeBlockEntities: codeBlockEntities,
+        context: &context
+      )
+    }
+  }
+
+  private static func visit(
+    expressionFunctionCall functionCall: SXT.FunctionCall,
+    syntax: Syntax,
+    context: inout Context
+  ) -> [CodeBlockItem] {
+    let fcall = visit(
+      functionCall: functionCall,
+      syntax: syntax,
+      context: &context
+    )
+    switch fcall {
+    case .implicitScopeInit, .scopeNested:
+      context
+        .diagnose("[WIP] Unexpected implicit control call", at: syntax)
+      return []
+    case .scopeEnd:
+      return [.init(syntax: syntax, node: .implicitScopeEnd)]
+    case let .implicitMap(from: from, to: to, closure: closure):
+      return closure + .item(.implicitMap(from: from, to: to), at: syntax)
+    case let .functionWithScope(fcall, array):
+      return array + [
+        .init(syntax: syntax, node: .functionCall(fcall)),
+      ]
+    case let .regularFunction(argsAndCalled: items):
+      return items
+    }
+  }
+
   private static func visitMemberVariableDecl(
     _ variableDecl: SXT.VariableDecl,
     syntax: Syntax,
@@ -948,7 +1018,11 @@ enum SemaTreeBuilder<
       switch initializer {
       case let .functionCall(fcall):
         [
-          .init(value: .functionCall(fcall), syntax: syntax)
+          .init(value: .expr(.functionCall(fcall)), syntax: syntax)
+        ]
+      case let .closure(closure):
+        [
+          .init(value: .expr(.closure(closure)), syntax: syntax)
         ]
       case .declRef:
         []
@@ -1055,7 +1129,7 @@ enum SemaTreeBuilder<
           fillFunctionName: funcName
         )
       )
-    case .other, .declRef, .memberAccessor:
+    case .other, .declRef, .memberAccessor, .closure:
       return nil
     }
   }

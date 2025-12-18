@@ -620,7 +620,7 @@ extension SemaTreeBuilder.Context {
         return nil
       }
       return type
-    case .other, .macroExpansion:
+    case .other, .macroExpansion, .closure:
       diagnostics.diagnose(.unableToInferType, at: syntax)
       return nil
     }
@@ -793,7 +793,7 @@ extension SemaTreeBuilder.Context.VariableInfoForTypeInference {
         case .end, nil:
           return false
         }
-      case .declRef, .other, .memberAccessor, .macroExpansion:
+      case .declRef, .other, .memberAccessor, .macroExpansion, .closure:
         return false
       }
     }

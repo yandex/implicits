@@ -37,13 +37,18 @@ public enum SyntaxTree<Syntax> {
 
   /// Enum defining kinds of entities that can exist within a code block,
   /// such as type declarations, variable declarations, function declarations,
-  /// function calls, closure expressions, defer statements, and lists of code block items.
+  /// expressions, and statements.
   public enum CodeBlockStatement {
-    case declaration(Declaration)
-    case functionCall(FunctionCall)
-    case closureExpr(ClosureExpr)
-    case deferStmt(DeferStmt)
-    case codeBlockItemList(CodeBlockItemList)
+    case decl(Declaration)
+    case stmt(Statement)
+    case expr(Expression)
+  }
+
+  /// Statements within a code block.
+  public enum Statement {
+    case `defer`(DeferStmt)
+    case `do`(DoStmt)
+    case other(CodeBlockItemList)
   }
 
   /// Definition of declaration statements, such as types (`class`,
@@ -145,6 +150,7 @@ public enum SyntaxTree<Syntax> {
   /// that can appear in code.
   public enum Expression {
     case functionCall(FunctionCall)
+    case closure(ClosureExpr)
     case macroExpansion(String)
     case declRef(String, parameters: [String]?)
     indirect case memberAccessor(base: Expression, String)
@@ -191,6 +197,15 @@ public enum SyntaxTree<Syntax> {
   /// ```
   /// defer { ... }
   public typealias DeferStmt = [CodeBlockEntity]
+
+  /// Represents do-catch statement
+  /// ```
+  /// do { ... } catch { ... }
+  /// ```
+  public struct DoStmt {
+    public var body: [CodeBlockEntity]
+    public var catchBodies: [[CodeBlockEntity]]
+  }
 
   /// Represents the content of a code block
   /// ```
@@ -579,17 +594,35 @@ extension SyntaxTree.MemberBlockStatement {
 extension SyntaxTree.CodeBlockStatement {
   func mapSyntax<S>(_ t: (Syntax) -> S) -> SyntaxTree<S>.CodeBlockStatement {
     switch self {
-    case let .declaration(v):
-      .declaration(v.mapSyntax(t))
-    case let .functionCall(v):
-      .functionCall(v.mapSyntax(t))
-    case let .closureExpr(v):
-      .closureExpr(v.mapSyntax(t))
-    case let .deferStmt(v):
-      .deferStmt(v.map { $0.map(t, ST.CodeBlockStatement.mapSyntax) })
-    case let .codeBlockItemList(v):
-      .codeBlockItemList(v.map { $0.map(t, ST.CodeBlockStatement.mapSyntax) })
+    case let .decl(v):
+      .decl(v.mapSyntax(t))
+    case let .stmt(v):
+      .stmt(v.mapSyntax(t))
+    case let .expr(e):
+      .expr(e.mapSyntax(t))
     }
+  }
+}
+
+extension SyntaxTree.Statement {
+  func mapSyntax<S>(_ t: (Syntax) -> S) -> SyntaxTree<S>.Statement {
+    switch self {
+    case let .defer(v):
+      .defer(v.map { $0.map(t, ST.CodeBlockStatement.mapSyntax) })
+    case let .do(v):
+      .do(v.mapSyntax(t))
+    case let .other(v):
+      .other(v.map { $0.map(t, ST.CodeBlockStatement.mapSyntax) })
+    }
+  }
+}
+
+extension SyntaxTree.DoStmt {
+  func mapSyntax<S>(_ t: (Syntax) -> S) -> SyntaxTree<S>.DoStmt {
+    .init(
+      body: body.map { $0.map(t, ST.CodeBlockStatement.mapSyntax) },
+      catchBodies: catchBodies.map { $0.map { $0.map(t, ST.CodeBlockStatement.mapSyntax) } }
+    )
   }
 }
 
@@ -701,6 +734,8 @@ extension SyntaxTree.Expression {
     switch self {
     case let .functionCall(v):
       .functionCall(v.mapSyntax(t))
+    case let .closure(v):
+      .closure(v.mapSyntax(t))
     case let .macroExpansion(v):
       .macroExpansion(v)
     case let .declRef(v, parameters: ps):
