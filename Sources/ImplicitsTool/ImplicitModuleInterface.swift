@@ -5,11 +5,11 @@ public struct ImplicitModuleInterface: Equatable, Sendable {
 
   public struct Symbol: Equatable, Sendable {
     public var info: ExternalSymbol
-    public var requrements: [ImplicitKey]?
+    public var requirements: [ImplicitKey]?
 
-    public init(info: ExternalSymbol, requrements: [ImplicitKey]?) {
+    public init(info: ExternalSymbol, requirements: [ImplicitKey]?) {
       self.info = info
-      self.requrements = requrements
+      self.requirements = requirements
     }
   }
 
@@ -76,14 +76,14 @@ extension ImplicitModuleInterface.Symbol: Serializable {
   public init(
     from stream: inout some InputByteStream
   ) throws(SerializationError) {
-    try self.init(info: .init(from: &stream), requrements: .init(from: &stream))
+    try self.init(info: .init(from: &stream), requirements: .init(from: &stream))
   }
 
   public func serialize(
     to buffer: inout some OutputByteStream
   ) throws(SerializationError) {
     try info.serialize(to: &buffer)
-    try requrements.serialize(to: &buffer)
+    try requirements.serialize(to: &buffer)
   }
 }
 

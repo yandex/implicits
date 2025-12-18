@@ -81,9 +81,9 @@ public enum StaticAnalysis {
       sema: Array(zip(syntaxTrees, semaTrees)),
       diagnostics: &diagnostics,
       dependencies: dependencies.flatMap { $0.symbols.map { symbol in
-        (symbol.info.mapSyntax { .external($0) }, symbol.requrements)
+        (symbol.info.mapSyntax { .external($0) }, symbol.requirements)
       }} + dependencies.flatMap { $0.testableSymbols.map { symbol in
-        (symbol.info.mapSyntax { .external($0) }, symbol.requrements)
+        (symbol.info.mapSyntax { .external($0) }, symbol.requirements)
       }}
     )
     let checked = reqGraph.resolveRequirements(
@@ -106,13 +106,13 @@ public enum StaticAnalysis {
 
     let externalSymbols = publicFunctions.compactMap {
       $0.1.moreOrEqualVisible(than: .package) ? ImplicitModuleInterface.Symbol(
-        info: $0.0, requrements: externalFuncsWithImplicits[$0.0]
+        info: $0.0, requirements: externalFuncsWithImplicits[$0.0]
       ) : nil
     }
     let testableSymbols = publicFunctions.compactMap {
       $0.1.moreOrEqualVisible(than: .internal) &&
         $0.1.lessOrEqualVisible(than: .package) ? ImplicitModuleInterface.Symbol(
-          info: $0.0, requrements: testableFuncsWithImplicits[$0.0]
+          info: $0.0, requirements: testableFuncsWithImplicits[$0.0]
         ) : nil
     }
 
@@ -120,6 +120,7 @@ public enum StaticAnalysis {
       syntaxTrees: syntaxTrees, semaTrees: semaTrees,
       implicitFunctions: checked.implicitFunctions,
       bags: checked.bags,
+      namedImplicitsWrappers: checked.namedImplicitsWrappers,
       enableExporting: enableExporting,
       dependencies: dependencies,
       diagnostics: &diagnostics,

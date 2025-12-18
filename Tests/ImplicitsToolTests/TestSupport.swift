@@ -158,7 +158,7 @@ private func reportDiagnostic(_ kind: DiagnosticErrorKind, _ diag: Diagnostic, a
       fileID: file,
       filePath: file,
       line: diag.loc.line,
-      column: 0
+      column: 1
     )
   )
 }

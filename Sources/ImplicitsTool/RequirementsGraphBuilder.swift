@@ -39,6 +39,8 @@ private struct UnresolvedGraph<Syntax, File> {
   var implicitStoredProperties = [Sema.Namespace: (head: Idx, tail: Idx)]()
   var initializers = [Sema.Namespace: [Idx]]()
   var bags = [(SMT.ImplicitBag, Idx, File)]()
+  var namedImplicitsWrappers = [(wrapperName: String, closureParamCount: Int, Idx, File)]()
+  var seenWrapperNames = [String: Syntax?]() // nil = already reported duplicate
   var diagnostics = Diagnostics()
   var publicInterface = [(Idx, SymbolInfo<Syntax>)]()
   var testableInterface = [(Idx, SymbolInfo<Syntax>)]()
@@ -52,6 +54,12 @@ private struct UnresolvedGraph<Syntax, File> {
     RequirementsGraph<Syntax, File>(
       graph: graph, entryPoints: entryPoints,
       bags: bags.map { ($0.1, name: $0.0.node.fillFunctionName, $0.2) },
+      namedImplicitsWrappers: namedImplicitsWrappers.map { (
+        $0.2,
+        $0.wrapperName,
+        $0.closureParamCount,
+        $0.3
+      ) },
       publicInterface: publicInterface,
       testableInterface: testableInterface,
       implicitFunctions: implicitFunctions
@@ -606,6 +614,31 @@ extension UnresolvedGraph {
       )
       innerState.endLocalScope(at: sema.syntax, diagnostics: &diagnostics)
       traverseCodeBlock(body, state: &innerState)
+    case let .withNamedImplicits(wrapperName: name, closureParamCount: paramCount, body: body):
+      diagnostics.check(state.hasScope, or: .noScope, at: sema.syntax)
+
+      var innerState = state
+      innerState.scope = nil
+      defer { state.bagReferences = innerState.bagReferences }
+
+      switch seenWrapperNames[name] {
+      case .none:
+        seenWrapperNames[name] = sema.syntax
+        let wrapperNode = addNode(syntax: sema.syntax, parent: state.parent)
+        namedImplicitsWrappers.append((name, paramCount, wrapperNode, state.file))
+        innerState.parent = wrapperNode
+      case let .some(previousUsage?):
+        diagnostics.diagnose(.duplicateWrapperName(name), at: sema.syntax)
+        diagnostics.note(.previousWrapperUsage, at: previousUsage)
+        seenWrapperNames[name] = .some(nil)
+        innerState.parent = addNode(syntax: sema.syntax, parent: state.parent)
+      case .some(.none):
+        innerState.parent = addNode(syntax: sema.syntax, parent: state.parent)
+      }
+
+      innerState.beginLocalScope(nested: false, at: sema.syntax, diagnostics: &diagnostics)
+      innerState.endLocalScope(at: sema.syntax, diagnostics: &diagnostics)
+      traverseCodeBlock(body, state: &innerState)
     }
   }
 
@@ -622,7 +655,8 @@ extension UnresolvedGraph {
         closure.body.forEach(checkNoImplicitStatements)
       case let .deferStatement(block):
         block.forEach(checkNoImplicitStatements)
-      case .implicit, .implicitMap, .implicitScopeBegin, .functionCall, .withScope:
+      case .implicit, .implicitMap, .implicitScopeBegin, .functionCall, .withScope,
+           .withNamedImplicits:
         diagnostics.diagnose(
           .unexpectedStatementInDefer,
           at: node.syntax
@@ -700,6 +734,13 @@ extension DiagnosticMessage {
     "'scope.end()' must be called in topmost scope in 'defer' block"
   fileprivate static let funcWithScopeInDefer: Self =
     "Function declaration with scope parameter in defer block is forbidden"
+
+  // Named Implicits Wrappers
+  fileprivate static func duplicateWrapperName(_ name: String) -> Self {
+    "Implicit closure wrappers must have unique names, 'with\(name)Implicits' is already defined"
+  }
+
+  fileprivate static let previousWrapperUsage: Self = "Previous wrapper here"
 
   // Implicit Bags
   fileprivate static let noBag: Self = "Using unknown bag"

@@ -14,6 +14,12 @@ enum SupportFileBuilder<Syntax> {
     semaTrees: [[SemaTree<Syntax>.TopLevel]],
     implicitFunctions: [(SemaTree<Syntax>.FuncDecl, SyntaxTreeFile, [ImplicitKey])],
     bags: [(name: String, requirements: [ImplicitKey], file: SyntaxTreeFile)],
+    namedImplicitsWrappers: [(
+      wrapperName: String,
+      closureParamCount: Int,
+      requirements: [ImplicitKey],
+      file: SyntaxTreeFile
+    )],
     enableExporting: Bool,
     dependencies: [ImplicitModuleInterface],
     diagnostics: inout Diagnostics,
@@ -128,16 +134,30 @@ enum SupportFileBuilder<Syntax> {
     for (_, _, file) in bags {
       imports.registerImports(from: file, blame: "bags")
     }
-    let supprotFile = SupportFile(
+
+    for (_, _, _, file) in namedImplicitsWrappers {
+      imports.registerImports(from: file, blame: "named implicits wrappers")
+    }
+
+    let wrappers = namedImplicitsWrappers.map {
+      SupportFile.NamedImplicitsWrapper(
+        wrapperName: $0.wrapperName,
+        closureParamCount: $0.closureParamCount,
+        requirements: $0.requirements
+      )
+    }
+
+    let supportFile = SupportFile(
       keys: keyDecls,
       imports: imports.sortedImports(),
       ifFalseImports: ifFalseImports.sortedImports(),
       functions: needsAdapter,
       ifFalseFunctions: needsAdapterIfFalse,
-      bags: bags.map { ($0.0, $0.1) }
+      bags: bags.map { ($0.0, $0.1) },
+      namedImplicitsWrappers: wrappers
     )
     return (
-      supprotFile, generatedSymbols.map { .init(info: $0, requrements: nil) }
+      supportFile, generatedSymbols.map { .init(info: $0, requirements: nil) }
     )
   }
 }

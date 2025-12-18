@@ -770,6 +770,25 @@ enum SemaTreeBuilder<
       ])
     }
 
+    // withFooImplicits { scope in ... }
+    if let (wrapperName, closureParamCount, closure, scopeArg) = functionCall
+      .isWithNamedImplicits() {
+      let body = visit(
+        codeBlockEntities: closure.body,
+        context: &context[withScope: closure, scopeParamter: scopeArg]
+      )
+      return .regularFunction(argsAndCalled: [
+        CodeBlockItem(
+          syntax: syntax,
+          node: .withNamedImplicits(
+            wrapperName: wrapperName,
+            closureParamCount: closureParamCount,
+            body: body
+          )
+        )
+      ])
+    }
+
     // ImplicitScope()
     if functionCall.isImplicitScopeInitializer {
       let hasBag = analyzeImplicitScopeArgs(
@@ -1284,6 +1303,40 @@ extension SyntaxTree.FunctionCall {
       return nil
     }
     return (nested: nested, withBag: withBag, closure: closure, scopeArg: scopeArg.name.syntax)
+  }
+
+  /// Detects pattern: `withFooImplicits { scope in ... }` or `withFooImplicits { arg1, arg2, scope
+  /// in ... }`
+  func isWithNamedImplicits() -> (
+    wrapperName: String,
+    closureParamCount: Int,
+    closure: SyntaxTree.ClosureExpr,
+    scopeArg: Syntax
+  )? {
+    guard base == nil else { return nil }
+    guard let funcName = name?.value.description,
+          funcName.hasPrefix(ImplicitKeyword.ClosureWrapper.prefix),
+          funcName.hasSuffix(ImplicitKeyword.ClosureWrapper.suffix) else {
+      return nil
+    }
+
+    let prefixLen = ImplicitKeyword.ClosureWrapper.prefix.count
+    let suffixLen = ImplicitKeyword.ClosureWrapper.suffix.count
+    guard funcName.count > prefixLen + suffixLen else { return nil }
+    let wrapperName = String(funcName.dropFirst(prefixLen).dropLast(suffixLen))
+
+    guard arguments.isEmpty else { return nil }
+    guard let trailingClosure else { return nil }
+    let closure = trailingClosure.value
+    guard let params = closure.parameters, !params.isEmpty else { return nil }
+    guard let lastParam = params.last, lastParam.isImplicitScope else { return nil }
+
+    return (
+      wrapperName: wrapperName,
+      closureParamCount: params.count - 1,
+      closure: closure,
+      scopeArg: lastParam.name.syntax
+    )
   }
 }
 
