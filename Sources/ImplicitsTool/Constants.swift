@@ -33,4 +33,9 @@ enum ImplicitKeyword {
   static let keysEnumName = "ImplicitsKeys"
   static let annotationsConstructor = "_annotationsInit"
   static let anonClosureNamePrefix = "_anonClosure"
+
+  enum ClosureWrapper {
+    static let prefix = "with"
+    static let suffix = "Implicits"
+  }
 }

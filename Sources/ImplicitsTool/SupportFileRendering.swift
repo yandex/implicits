@@ -17,7 +17,7 @@ extension SupportFile {
   ) -> CodeBlockItemListSyntax {
     let imports = importSyntax(
       imports: imports,
-      needsImplicitsUnsafeSPI: !bags.isEmpty,
+      needsImplicitsUnsafeSPI: !bags.isEmpty || !namedImplicitsWrappers.isEmpty,
       accessLevelOnImports: accessLevelOnImports,
       renderBlame: debugInfo
     ).map { DeclSyntax($0) }
@@ -41,6 +41,7 @@ extension SupportFile {
         DeclSyntax.extension(TypeSyntax("ImplicitsKeys"), keys)
       }
       bagsSyntax().map { DeclSyntax($0) }
+      namedImplicitsWrappersSyntax().map { DeclSyntax($0) }
       publicFunctions
       if !ifFalseFunctions.isEmpty {
         IfConfigDeclSyntax(clauses: IfConfigClauseListSyntax {
@@ -131,33 +132,110 @@ extension SupportFile {
   }
 
   private func bagsSyntax() -> [FunctionDeclSyntax] {
-    bags.compactMap { name, requirements in
-      let funcSignature = FunctionSignatureSyntax(
-        parameterClause: FunctionParameterClauseSyntax(parameters: []),
-        returnClause: ReturnClauseSyntax(type: TypeSyntax("Implicits"))
-      )
-      let f = FunctionDeclSyntax(
+    bags.map { name, requirements in
+      FunctionDeclSyntax(
         modifiers: [.internal],
         name: "\(raw: name)",
-        genericParameterClause: nil,
-        signature: funcSignature,
-        genericWhereClause: nil,
-        body: CodeBlockSyntax {
-          FunctionCallExprSyntax(callee: "Implicits" as ExprSyntax) {
-            if let first = requirements.first {
-              LabeledExprSyntax(
-                label: "unsafeKeys", expression: first.getRawKeyValueSyntax()
-              )
-            }
-            for req in requirements.dropFirst() {
-              LabeledExprSyntax(
-                expression: req.getRawKeyValueSyntax()
-              )
-            }
-          }
-        }
+        signature: FunctionSignatureSyntax(
+          parameterClause: FunctionParameterClauseSyntax(parameters: []),
+          returnClause: ReturnClauseSyntax(type: TypeSyntax("Implicits"))
+        ),
+        body: CodeBlockSyntax { implicitsCallSyntax(requirements: requirements) }
       )
-      return f
+    }
+  }
+
+  private func namedImplicitsWrappersSyntax() -> [FunctionDeclSyntax] {
+    namedImplicitsWrappers.map { wrapper in
+      let genericParams = GenericParameterClauseSyntax {
+        GenericParameterSyntax(name: "T")
+        for i in 0..<wrapper.closureParamCount {
+          GenericParameterSyntax(name: "A\(raw: i + 1)")
+        }
+      }
+
+      let closureParamTypes: [String] = (0..<wrapper.closureParamCount)
+        .map { "A\($0 + 1)" } + ["ImplicitScope"]
+      let closureType = "(\(closureParamTypes.joined(separator: ", "))) -> T"
+
+      let returnParamTypes: [String] = (0..<wrapper.closureParamCount).map { "A\($0 + 1)" }
+      let returnType = returnParamTypes.isEmpty ? "() -> T" : "(\(returnParamTypes.joined(separator: ", "))) -> T"
+
+      let funcSignature = FunctionSignatureSyntax(
+        parameterClause: FunctionParameterClauseSyntax(parameters: [
+          FunctionParameterSyntax(
+            firstName: "_",
+            secondName: "body",
+            type: "@escaping \(raw: closureType)" as TypeSyntax
+          ),
+        ]),
+        returnClause: ReturnClauseSyntax(type: "\(raw: returnType)" as TypeSyntax)
+      )
+
+      let funcName =
+        ImplicitKeyword.ClosureWrapper.prefix +
+        wrapper.wrapperName +
+        ImplicitKeyword.ClosureWrapper.suffix
+      let argNames = (0..<wrapper.closureParamCount).map { "arg\($0 + 1)" }
+
+      let body = CodeBlockSyntax {
+        VariableDeclSyntax(
+          .let,
+          name: "implicits",
+          initializer: InitializerClauseSyntax(
+            value: implicitsCallSyntax(requirements: wrapper.requirements)
+          )
+        )
+
+        ReturnStmtSyntax(expression: ClosureExprSyntax(
+          signature: wrapper.closureParamCount > 0 ? ClosureSignatureSyntax(
+            parameterClause: .simpleInput(ClosureShorthandParameterListSyntax {
+              for argName in argNames {
+                ClosureShorthandParameterSyntax(name: .identifier(argName))
+              }
+            })
+          ) : nil,
+          statements: CodeBlockItemListSyntax {
+            VariableDeclSyntax(
+              .let,
+              name: "scope",
+              initializer: InitializerClauseSyntax(
+                value: FunctionCallExprSyntax(callee: "ImplicitScope" as ExprSyntax) {
+                  LabeledExprSyntax(label: "with", expression: "implicits" as ExprSyntax)
+                }
+              )
+            )
+            DeferStmtSyntax {
+              FunctionCallExprSyntax(callee: "scope.end" as ExprSyntax)
+            }
+            ReturnStmtSyntax(expression: FunctionCallExprSyntax(callee: "body" as ExprSyntax) {
+              for argName in argNames {
+                LabeledExprSyntax(expression: "\(raw: argName)" as ExprSyntax)
+              }
+              LabeledExprSyntax(expression: "scope" as ExprSyntax)
+            })
+          }
+        ))
+      }
+
+      return FunctionDeclSyntax(
+        modifiers: [.internal],
+        name: "\(raw: funcName)",
+        genericParameterClause: genericParams,
+        signature: funcSignature,
+        body: body
+      )
+    }
+  }
+}
+
+private func implicitsCallSyntax(requirements: [ImplicitKey]) -> FunctionCallExprSyntax {
+  FunctionCallExprSyntax(callee: "Implicits" as ExprSyntax) {
+    if let first = requirements.first {
+      LabeledExprSyntax(label: "unsafeKeys", expression: first.getRawKeyValueSyntax())
+    }
+    for req in requirements.dropFirst() {
+      LabeledExprSyntax(expression: req.getRawKeyValueSyntax())
     }
   }
 }

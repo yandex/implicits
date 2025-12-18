@@ -16,6 +16,7 @@ public struct RequirementsGraph<Syntax, File> {
   var graph: Graph
   var entryPoints: [Graph.Index]
   var bags: [(Graph.Index, name: String, File)]
+  var namedImplicitsWrappers: [(Graph.Index, wrapperName: String, closureParamCount: Int, File)]
   var publicInterface: [(Graph.Index, Symbol)]
   var testableInterface: [(Graph.Index, Symbol)]
   var implicitFunctions: [(Graph.Index, File, SemaTree<Syntax>.FuncDecl)]
@@ -25,6 +26,12 @@ extension RequirementsGraph {
   typealias Diagnostics = DiagnosticsGeneric<Syntax>
   struct ResolveRequirementsResult {
     var bags: [(name: String, requirements: [ImplicitKey], File)]
+    var namedImplicitsWrappers: [(
+      wrapperName: String,
+      closureParamCount: Int,
+      requirements: [ImplicitKey],
+      File
+    )]
     var publicInterface: [(Symbol, [ImplicitKey])]
     var testableInterface: [(Symbol, [ImplicitKey])]
     var implicitFunctions: [(SemaTree<Syntax>.FuncDecl, File, [ImplicitKey])]
@@ -47,6 +54,17 @@ extension RequirementsGraph {
         .sorted { $0.lexicographicalOrder < $1.lexicographicalOrder },
       file: $0.2
     ) }
+    let namedImplicitsWrappers = self.namedImplicitsWrappers
+      .map { idx, wrapperName, paramCount, file in
+        let reqs = resolveRequirements(from: idx, cache: &cache, path: [])
+          .sorted { $0.lexicographicalOrder < $1.lexicographicalOrder }
+        return (
+          wrapperName: wrapperName,
+          closureParamCount: paramCount,
+          requirements: reqs,
+          file: file
+        )
+      }
     let publicInterface = self.publicInterface.map { index, signature in
       let reqs = resolveRequirements(from: index, cache: &cache, path: [])
         .sorted { $0.lexicographicalOrder < $1.lexicographicalOrder }
@@ -64,6 +82,7 @@ extension RequirementsGraph {
     }
     return ResolveRequirementsResult(
       bags: bags,
+      namedImplicitsWrappers: namedImplicitsWrappers,
       publicInterface: publicInterface,
       testableInterface: testableInterface,
       implicitFunctions: implicitFunctions
@@ -80,7 +99,7 @@ extension RequirementsGraph {
     }
     if path.contains(from) {
       // Cycle in graph because of recursion.
-      // It's ok to return empty here, as all the requrements are already
+      // It's ok to return empty here, as all the requirements are already
       // taken into account in the cycle.
       return []
     }

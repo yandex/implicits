@@ -28,8 +28,41 @@ internal func __implicit_bag_support_file_swift_28_22() -> Implicits {
   Implicits(unsafeKeys: Implicits.getRawKey((UInt16).self), Implicits.getRawKey((UInt8).self))
 }
 
-internal func __implicit_bag_support_file_swift_48_19() -> Implicits {
+internal func __implicit_bag_support_file_swift_62_19() -> Implicits {
   Implicits()
+}
+
+internal func withSupportZeroImplicits<T>(_ body: @escaping (ImplicitScope) -> T) -> () -> T {
+  let implicits = Implicits(unsafeKeys: Implicits.getRawKey((UInt16).self), Implicits.getRawKey((UInt8).self))
+  return {
+    let scope = ImplicitScope(with: implicits)
+    defer {
+      scope.end()
+    }
+    return body(scope)
+  }
+}
+
+internal func withSupportOneImplicits<T, A1>(_ body: @escaping (A1, ImplicitScope) -> T) -> (A1) -> T {
+  let implicits = Implicits(unsafeKeys: Implicits.getRawKey((UInt16).self), Implicits.getRawKey((UInt8).self))
+  return { arg1 in
+    let scope = ImplicitScope(with: implicits)
+    defer {
+      scope.end()
+    }
+    return body(arg1, scope)
+  }
+}
+
+internal func withSupportTwoImplicits<T, A1, A2>(_ body: @escaping (A1, A2, ImplicitScope) -> T) -> (A1, A2) -> T {
+  let implicits = Implicits(unsafeKeys: Implicits.getRawKey((UInt16).self), Implicits.getRawKey((UInt8).self))
+  return { arg1, arg2 in
+    let scope = ImplicitScope(with: implicits)
+    defer {
+      scope.end()
+    }
+    return body(arg1, arg2, scope)
+  }
 }
 
 public func supportFileFunc(arg: Int, bool: @autoclosure () -> Bool, keyFromAnotherModule: @autoclosure () -> [String: [Int]], supportFileKey2: @autoclosure () -> [Int]) {

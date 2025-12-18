@@ -32,6 +32,20 @@ private func withBag(_: ImplicitScope) {
   }
 }
 
+private func withImplicits(_: ImplicitScope) {
+  _ = withSupportZeroImplicits { scope in
+    requires(scope)
+  }
+  _ = withSupportOneImplicits { (a: Int, scope) in
+    _ = a
+    requires(scope)
+  }
+  _ = withSupportTwoImplicits { (a: String, b: Bool, scope) in
+    _ = a; _ = b
+    requires(scope)
+  }
+}
+
 @_spi(Implicits)
 public func supportFileFunc(arg: Int, _: ImplicitScope) {
   @Implicit()

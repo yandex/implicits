@@ -17,12 +17,19 @@ public struct SupportFile {
     public var returnType: String?
   }
 
+  public struct NamedImplicitsWrapper {
+    public var wrapperName: String
+    public var closureParamCount: Int
+    public var requirements: [ImplicitKey]
+  }
+
   var keys: [Sema.ImplicitKeyDecl]
   var imports: [(Visibility, String, debugBlame: String)]
   var ifFalseImports: [(Visibility, String, debugBlame: String)]
   var functions: [(FuncSignature, [ImplicitParameter])]
   var ifFalseFunctions: [(FuncSignature, [ImplicitParameter])]
   var bags: [(name: String, requirements: [ImplicitKey])]
+  var namedImplicitsWrappers: [NamedImplicitsWrapper]
 }
 
 extension SupportFile {

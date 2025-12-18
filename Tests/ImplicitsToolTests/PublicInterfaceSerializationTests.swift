@@ -61,7 +61,7 @@ private let interface2 = ImplicitModuleInterface(
         syntax: .init(file: "n_another_module.swift", line: 5, column: 1),
         file: "n_another_module.swift"
       ),
-      requrements: [.init(kind: .type, name: "AnotherModuleStruct")]
+      requirements: [.init(kind: .type, name: "AnotherModuleStruct")]
     ),
   ],
   testableSymbols: [],
@@ -87,7 +87,7 @@ private let initSymbol = ImplicitModuleInterface.Symbol(
     syntax: .init(file: "test.swift", line: 1, column: 2),
     file: "test.swift"
   ),
-  requrements: [.init(kind: .keyPath, name: "myType")]
+  requirements: [.init(kind: .keyPath, name: "myType")]
 )
 
 private let staticSymbol = ImplicitModuleInterface.Symbol(
@@ -103,7 +103,7 @@ private let staticSymbol = ImplicitModuleInterface.Symbol(
     syntax: .init(file: "test.swift", line: 1, column: 2),
     file: "test.swift"
   ),
-  requrements: nil
+  requirements: nil
 )
 
 private let memberSymbol = ImplicitModuleInterface.Symbol(
@@ -118,5 +118,5 @@ private let memberSymbol = ImplicitModuleInterface.Symbol(
     syntax: .init(file: "test.swift", line: 3, column: 4),
     file: "test.swift"
   ),
-  requrements: [.init(kind: .keyPath, name: "myType")]
+  requirements: [.init(kind: .keyPath, name: "myType")]
 )
