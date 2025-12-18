@@ -22,10 +22,14 @@ private func entry(int: UInt8, someVar: UInt16) {
   @Implicit
   var v2 = MultipleInits(a: 0)
 
+  @Implicit
+  var v3 = createFunctionReturnType()
+
   requiresOuter(scope)
   requiresInner(scope)
   requiresUInts(scope)
   requiresOthers(scope)
+  requiresFunctionReturnType(scope)
 }
 
 private func requiresOuter(_ scope: ImplicitScope) {
@@ -102,4 +106,15 @@ private struct S_TypesOfFieldVars {
 private struct MultipleInits {
   init(a: Int) {}
   init(a: UInt = 0) {}
+}
+
+private struct FunctionReturnType {}
+
+private func createFunctionReturnType() -> FunctionReturnType {
+  FunctionReturnType()
+}
+
+private func requiresFunctionReturnType(_ scope: ImplicitScope) {
+  @Implicit()
+  var v: FunctionReturnType
 }
