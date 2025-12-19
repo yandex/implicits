@@ -106,6 +106,10 @@ struct StaticAnalysisTests {
       ]
     )
   }
+
+  @Test func ifConfigFiltering() {
+    verify(file: "if_config_filtering.swift", compilationConditions: ["A", "B", "C"])
+  }
 }
 
 private let anotherModule = (modulename: "AnotherModule", files: ["another_module.swift"])

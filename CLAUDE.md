@@ -53,6 +53,16 @@ swift run implicits-tool-spm-plugin <args-file>
    }
    ```
 
+## Development Process
+
+This project follows **strict TDD (Test-Driven Development)**:
+1. Write a test first
+2. Verify the test fails
+3. Implement the fix
+4. Verify the test passes
+
+Almost all code changes in this project happen this way.
+
 ## Important Constraints
 
 - Static analysis requires explicit type annotations (limited type inference)

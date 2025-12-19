@@ -14,12 +14,14 @@ func verify(
   file: String,
   enableExporting: Bool = false,
   supportFile: String? = nil,
+  compilationConditions: Set<String>? = nil,
   sourceLocation: Testing.SourceLocation = #_sourceLocation
 ) {
   verify(
     files: [file],
     enableExporting: enableExporting,
     supportFile: supportFile,
+    compilationConditions: compilationConditions,
     sourceLocation: sourceLocation
   )
 }
@@ -28,6 +30,7 @@ func verify(
   files: [String],
   enableExporting: Bool = false,
   supportFile: String? = nil,
+  compilationConditions: Set<String>? = nil,
   dependencies: [(modulename: String, files: [String])] = [],
   sourceLocation: Testing.SourceLocation = #_sourceLocation
 ) {
@@ -38,6 +41,7 @@ func verify(
       modulename: dep.modulename,
       enableExporting: false,
       supportFile: nil,
+      compilationConditions: compilationConditions,
       dependencies: [],
       sourceLocation: sourceLocation
     )
@@ -63,6 +67,7 @@ func verify(
     modulename: "TestModule",
     enableExporting: enableExporting,
     supportFile: supportFile,
+    compilationConditions: compilationConditions,
     dependencies: deserializedInterfaces,
     sourceLocation: sourceLocation
   )
@@ -73,16 +78,23 @@ func verify(
   modulename: String,
   enableExporting: Bool,
   supportFile: String?,
+  compilationConditions: Set<String>?,
   dependencies: [ImplicitModuleInterface],
   sourceLocation: Testing.SourceLocation
 ) -> ImplicitModuleInterface {
   let sources = files.map(TestSupport.readFile)
   let asts = sources.map(Parser.parse(source:))
+  let compilationConditionsConfig: CompilationConditionsConfig =
+    if let compilationConditions {
+      .enabled(compilationConditions)
+    } else {
+      .unknown
+    }
   let analysisRun = StaticAnalysis.run(
     files: zip(asts, files).map { .init(ast: $0, filename: $1) },
     modulename: modulename,
     dependencies: dependencies,
-    compilationConditions: .unknown,
+    compilationConditions: compilationConditionsConfig,
     enableExporting: enableExporting
   )
 

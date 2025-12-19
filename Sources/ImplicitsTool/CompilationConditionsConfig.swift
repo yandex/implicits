@@ -19,22 +19,25 @@ extension GeneralVisitor {
   ) -> Self {
     modify(\.visitIfConfigDecl) { oldVisitor in
       { state, node in
-        var toVisit = [IfConfigClauseSyntax]()
         func eval(_ condition: ExprSyntax) -> Bool? {
           evaluateCondition(condition, config: config)
         }
+
+        var toVisit = [IfConfigClauseSyntax]()
         var evaluatedAtLeastOnce = false
+
         for clause in node.clauses {
-          guard let condition = clause.condition, let evaluated = eval(condition) else {
+          switch clause.condition.flatMap(eval) {
+          case nil:
             toVisit.append(clause)
-            continue
-          }
-          if evaluated {
+          case true?:
+            toVisit.append(clause)
+            return .visit(toVisit.map(Syntax.init))
+          case false?:
             evaluatedAtLeastOnce = true
-            toVisit.append(clause)
-            break
           }
         }
+
         return if evaluatedAtLeastOnce {
           .visit(toVisit.map(Syntax.init))
         } else {
@@ -43,15 +46,6 @@ extension GeneralVisitor {
       }
     }
   }
-}
-
-@_spi(Testing)
-public func removingInactiveIfConfig(
-  _ syntax: Syntax,
-  config: CompilationConditionsConfig
-) -> Syntax {
-  let rewriter = ActiveIfConfigRewriter(config: config)
-  return rewriter.rewrite(syntax)
 }
 
 @_spi(Testing)
@@ -103,38 +97,6 @@ public func evaluateCondition(
     }
   }
   return eval(condition)
-}
-
-private final class ActiveIfConfigRewriter: SyntaxRewriter {
-  var config: CompilationConditionsConfig
-
-  init(config: CompilationConditionsConfig) {
-    self.config = config
-  }
-
-  override func visit(_ node: IfConfigDeclSyntax) -> DeclSyntax {
-    var active = [IfConfigClauseSyntax]()
-    func eval(_ condition: ExprSyntax) -> Bool? {
-      evaluateCondition(condition, config: config)
-    }
-    for clause in node.clauses {
-      let newClause = active.isEmpty ?
-        clause
-        .with(\.condition, clause.condition ?? "true")
-        .with(\.poundKeyword, "#if ") :
-        clause
-      guard let condition = clause.condition, let evaluated = eval(condition) else {
-        active.append(newClause)
-        continue
-      }
-      if evaluated {
-        active.append(newClause)
-        break
-      }
-    }
-    let new = node.with(\.clauses, IfConfigClauseListSyntax(active))
-    return DeclSyntax(new)
-  }
 }
 
 fileprivate func foldOperators(

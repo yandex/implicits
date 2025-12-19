@@ -54,93 +54,10 @@ struct IfConfigTests {
     check("A ** B", nil)
     check("A = B", nil)
   }
-
-  @Test func ifConfig() throws {
-    func check(_ e: String, _ expected: String) {
-      let syntax = Syntax(Parser.parse(source: e))
-      let removed = removingInactiveIfConfig(
-        syntax, config: .enabled(["A", "B", "C"])
-      ).description
-      #expect(
-        removed.trim(\.isWhitespace) == expected.trim(\.isWhitespace),
-        "Expected \n\(e) to reduce into \n\(expected), but got \n\(removed)"
-      )
-    }
-
-    check(
-      """
-      #if A
-      let a = 1
-      #else
-      let b = 2
-      #endif
-      """,
-      """
-      #if A
-      let a = 1
-      #endif
-      """
-    )
-    check(
-      """
-      #if D
-      let a = 1
-      #else
-      let b = 2
-      #endif
-      """,
-      """
-      #if true
-      let b = 2
-      #endif
-      """
-    )
-    check(
-      """
-      #if os(iOS)
-      f(1)
-      #elseif A
-      f(2)
-      #else
-      f(3)
-      #endif
-      """,
-      """
-      #if os(iOS)
-      f(1)
-      #elseif A
-      f(2)
-      #endif
-      """
-    )
-  }
 }
 
 extension Bool? {
   fileprivate var descr: String {
     map { "\($0)" } ?? "nil"
-  }
-}
-
-extension StringProtocol {
-  func trim(
-    _ shouldTrim: (Character) -> Bool
-  ) -> Substring where SubSequence == Substring {
-    guard !isEmpty else { return self[startIndex..<startIndex] }
-    var start = startIndex
-    var end = index(before: endIndex)
-
-    while start <= end, shouldTrim(self[start]) {
-      start = index(after: start)
-    }
-
-    while end >= start, shouldTrim(self[end]) {
-      end = index(before: end)
-    }
-
-    if start > end {
-      return self[startIndex..<startIndex]
-    }
-    return self[start...end]
   }
 }
