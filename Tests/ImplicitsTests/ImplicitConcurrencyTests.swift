@@ -12,14 +12,47 @@ struct ImplicitConcurrencyTests {
     @Implicit(\.id)
     var id = 1
 
-    let actor = SomeActor()
+    let actor = SomeActor(scope)
     let retrieved = await actor.testActorImplicit(scope)
 
     #expect(retrieved == 1)
   }
 
+  @Test func storedImplicitInActor() async {
+    let scope = ImplicitScope()
+    defer { scope.end() }
+
+    @Implicit(\.id)
+    var id = 42
+
+    let actor = SomeActor(scope)
+    let retrieved = await actor.getStoredId()
+
+    #expect(retrieved == 42)
+  }
+
+  @Test func nonisolatedActorFunction() async {
+    let scope = ImplicitScope()
+    defer { scope.end() }
+
+    @Implicit(\.id)
+    var id = 77
+
+    let actor = SomeActor(scope)
+    let result = actor.nonisolatedWithImplicits(scope)
+
+    #expect(result.got == 77)
+    #expect(result.declared == 999)
+  }
+
   @Test func createRootScopeInActor() async {
-    let actor = SomeActor()
+    let scope = ImplicitScope()
+    defer { scope.end() }
+
+    @Implicit(\.id)
+    var id = 0
+
+    let actor = SomeActor(scope)
     let retrieved = await actor.createRootScope(id: 42)
 
     #expect(retrieved == 42)
@@ -65,6 +98,11 @@ private func asyncGetId(_ scope: ImplicitScope) async -> Int {
 }
 
 actor SomeActor {
+  @Implicit(\.id)
+  var storedId
+
+  init(_: ImplicitScope) {}
+
   func testActorImplicit(_ scope: ImplicitScope) async -> Int {
     let retrieved = await asyncGetId(scope)
 
@@ -81,5 +119,22 @@ actor SomeActor {
     let retrieved = await testActorImplicit(scope)
 
     return retrieved
+  }
+
+  func getStoredId() -> Int {
+    storedId
+  }
+
+  nonisolated func nonisolatedWithImplicits(_ scope: ImplicitScope) -> (got: Int, declared: Int) {
+    let scope = scope.nested()
+    defer { scope.end() }
+
+    @Implicit(\.id)
+    var gotId: Int
+
+    @Implicit(\.launchID)
+    var declaredLaunchID = 999
+
+    return (gotId, get(\.launchID, scope))
   }
 }
