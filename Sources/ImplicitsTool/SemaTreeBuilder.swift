@@ -709,6 +709,13 @@ enum SemaTreeBuilder<
           context: &context
         )
       )
+    case let .await(expr), let .try(expr, _):
+      nodes += visit(
+        varInitializer: expr,
+        syntax: syntax,
+        isConstant: isConstant,
+        context: &context
+      )
     }
     return nodes
   }
@@ -904,13 +911,13 @@ enum SemaTreeBuilder<
   ) -> [CodeBlockItem] {
     switch expression {
     case let .functionCall(functionCall):
-      return visit(
+      visit(
         expressionFunctionCall: functionCall,
         syntax: syntax,
         context: &context
       )
     case let .closure(closure):
-      return .item(
+      .item(
         .closureExpression(
           visit(
             closure: closure,
@@ -920,10 +927,16 @@ enum SemaTreeBuilder<
         at: syntax
       )
     case .macroExpansion, .declRef, .memberAccessor:
-      return []
+      []
     case let .other(codeBlockEntities):
-      return visit(
+      visit(
         codeBlockEntities: codeBlockEntities,
+        context: &context
+      )
+    case let .await(expr), let .try(expr, _):
+      visit(
+        expression: expr,
+        syntax: syntax,
         context: &context
       )
     }
@@ -1032,6 +1045,8 @@ enum SemaTreeBuilder<
         cb
       case .macroExpansion:
         []
+      case let .await(expr), let .try(expr, _):
+        visitInitializer(expr)
       }
     }
 
@@ -1129,7 +1144,7 @@ enum SemaTreeBuilder<
           fillFunctionName: funcName
         )
       )
-    case .other, .declRef, .memberAccessor, .closure:
+    case .other, .declRef, .memberAccessor, .closure, .await, .try:
       return nil
     }
   }

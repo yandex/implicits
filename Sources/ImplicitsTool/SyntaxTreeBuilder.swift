@@ -82,6 +82,8 @@ private let codeBlockVisitorFactory: @Sendable (CompilationConditionsConfig)
       visitDoStmt: visitSyntax { CodeBlockStatement.stmt(.do($0)) },
       visitClosureExpr: visitSyntax { CodeBlockStatement.expr(.closure($0)) },
       visitFunctionCallExpr: visitSyntax { CodeBlockStatement.expr(.functionCall($0)) },
+      visitTryExpr: visitSyntax { CodeBlockStatement.expr($0) },
+      visitAwaitExpr: visitSyntax { CodeBlockStatement.expr($0) },
       visitVariableDecl: visitSyntax(CodeBlockStatement.decl),
       visitCodeBlockItemList: visitSyntax { CodeBlockStatement.stmt(.other($0)) },
     ).filterInactiveIfConfig(config: ifConfig)
@@ -392,11 +394,35 @@ extension ExprSyntax: SyntaxDescriptionProvider {
         base: e.base?.syntaxDescription(context: context) ?? .other([]),
         e.declName.baseName.text
       )
+    case let .awaitExpr(e):
+      .await(e.expression.syntaxDescription(context: context))
+    case let .tryExpr(e):
+      .try(
+        e.expression.syntaxDescription(context: context),
+        questionOrExclamation: e.questionOrExclamationMark != nil
+      )
     default:
       .other(context.codeBlockVisitor().walk(
         initial: ([], context), syntax: self
       ).sxt)
     }
+  }
+}
+
+// MARK: Try/Await Expressions
+
+extension TryExprSyntax: SyntaxDescriptionProvider {
+  fileprivate func syntaxDescription(context: Context) -> SXT.Expression {
+    .try(
+      expression.syntaxDescription(context: context),
+      questionOrExclamation: questionOrExclamationMark != nil
+    )
+  }
+}
+
+extension AwaitExprSyntax: SyntaxDescriptionProvider {
+  fileprivate func syntaxDescription(context: Context) -> SXT.Expression {
+    .await(expression.syntaxDescription(context: context))
   }
 }
 

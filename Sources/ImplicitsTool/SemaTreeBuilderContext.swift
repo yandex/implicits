@@ -623,6 +623,8 @@ extension SemaTreeBuilder.Context {
     case .other, .macroExpansion, .closure:
       diagnostics.diagnose(.unableToInferType, at: syntax)
       return nil
+    case let .await(expr), let .try(expr, _):
+      return resolveVariableType(expr, syntax: syntax)
     }
   }
 
@@ -793,7 +795,7 @@ extension SemaTreeBuilder.Context.VariableInfoForTypeInference {
         case .end, nil:
           return false
         }
-      case .declRef, .other, .memberAccessor, .macroExpansion, .closure:
+      case .declRef, .other, .memberAccessor, .macroExpansion, .closure, .await, .try:
         return false
       }
     }

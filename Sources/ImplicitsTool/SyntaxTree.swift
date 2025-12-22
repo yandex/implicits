@@ -155,6 +155,8 @@ public enum SyntaxTree<Syntax> {
     case declRef(String, parameters: [String]?)
     indirect case memberAccessor(base: Expression, String)
     case other([CodeBlockEntity])
+    indirect case `await`(Expression)
+    indirect case `try`(Expression, questionOrExclamation: Bool)
   }
 
   /// Represents initializer declaration
@@ -746,6 +748,10 @@ extension SyntaxTree.Expression {
       .memberAccessor(base: base.mapSyntax(t), v)
     case let .other(v):
       .other(v.map { $0.map(t, ST.CodeBlockStatement.mapSyntax) })
+    case let .await(expr):
+      .await(expr.mapSyntax(t))
+    case let .try(expr, questionOrExclamation):
+      .try(expr.mapSyntax(t), questionOrExclamation: questionOrExclamation)
     }
   }
 }
