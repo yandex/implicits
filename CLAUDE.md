@@ -53,19 +53,19 @@ swift run implicits-tool-spm-plugin <args-file>
    }
    ```
 
-## Development Process
+## Testing
 
-This project follows **strict TDD (Test-Driven Development)**:
+This project follows **strict TDD** and has exhaustive test coverage:
 1. Write a test first
 2. Verify the test fails
-3. Implement the fix
+3. Implement the fix or feature
 4. Verify the test passes
 
-Almost all code changes in this project happen this way.
+- Integration tests are in `Sources/TestResources/test_data/` - check these for examples when implementing new features
+- Tests use inline annotations (e.g., `// expected-error`, `// expect-syntax:`) to specify expected behavior
 
 ## Important Constraints
 
 - Static analysis requires explicit type annotations (limited type inference)
 - No support for dynamic dispatch (protocols, closures) in static analysis
 - Scope objects must be explicitly passed as function parameters
-- Always check `TestResources/test_data` for examples when implementing new features

@@ -368,7 +368,138 @@ func checkSerialization<T: Serializable & Equatable & Sendable>(
   }
 }
 
-// LCS-based diff algorithm
+// MARK: - Syntax Tree Verification
+
+struct SyntaxExpectation<P: Hashable> {
+  var line: Int
+  var properties: Set<P>
+}
+
+struct SyntaxNodeResult<P: Hashable> {
+  var line: Int
+  var properties: Set<P>
+}
+
+protocol SyntaxVerifier {
+  associatedtype Property: RawRepresentable & Hashable & CaseIterable
+    where Property.RawValue == String
+
+  init()
+
+  func extractNodes(
+    from syntaxTree: [SyntaxTree<Syntax>.TopLevelEntity],
+    locationConverter: SourceLocationConverter
+  ) -> [SyntaxNodeResult<Property>]
+}
+
+extension SyntaxVerifier {
+  static var annotationPrefix: String { "expect-syntax:" }
+}
+
+func verifySyntax<V: SyntaxVerifier>(
+  file: String,
+  using _: V.Type,
+  sourceLocation: Testing.SourceLocation = #_sourceLocation
+) where V: Sendable {
+  let verifier = V()
+  let source = TestSupport.readFile(file)
+  let tree = Parser.parse(source: source)
+  let syntaxTree = SyntaxTree.build(tree, ifConfig: .unknown)
+  let sourceFilePath = TestSupport.pathToSourceFile(file)
+
+  let locationConverter = SourceLocationConverter(
+    fileName: file,
+    tree: tree
+  )
+
+  let expected = parseSyntaxExpectations(
+    from: source,
+    prefix: V.annotationPrefix,
+    propertyType: V.Property.self,
+    sourceLocation: sourceLocation
+  )
+
+  let actual = verifier.extractNodes(
+    from: syntaxTree,
+    locationConverter: locationConverter
+  )
+
+  func issueLocation(line: Int) -> Testing.SourceLocation {
+    Testing.SourceLocation(fileID: sourceFilePath, filePath: sourceFilePath, line: line, column: 1)
+  }
+
+  // Match by line and compare
+  for exp in expected {
+    guard let act = actual.first(where: { $0.line == exp.line }) else {
+      Issue.record(
+        "No syntax node found for annotation",
+        sourceLocation: issueLocation(line: exp.line)
+      )
+      continue
+    }
+
+    if exp.properties != act.properties {
+      let expectedStr = exp.properties.map { "\($0)" }.sorted().joined(separator: ", ")
+      let actualStr = act.properties.map { "\($0)" }.sorted().joined(separator: ", ")
+      Issue.record(
+        Comment(rawValue: "Expected [\(expectedStr)], got [\(actualStr)]"),
+        sourceLocation: issueLocation(line: exp.line)
+      )
+    }
+  }
+
+  // Check unannotated nodes have no properties (absence = no effects)
+  for act in actual where !expected.contains(where: { $0.line == act.line }) {
+    if !act.properties.isEmpty {
+      let actualStr = act.properties.map { "\($0)" }.sorted().joined(separator: ", ")
+      Issue.record(
+        Comment(rawValue: "Expected no effects, got [\(actualStr)]"),
+        sourceLocation: issueLocation(line: act.line)
+      )
+    }
+  }
+}
+
+private func parseSyntaxExpectations<P: RawRepresentable & Hashable & CaseIterable>(
+  from source: String,
+  prefix: String,
+  propertyType _: P.Type,
+  sourceLocation: Testing.SourceLocation
+) -> [SyntaxExpectation<P>] where P.RawValue == String {
+  let lines = source.split(separator: "\n", omittingEmptySubsequences: false)
+  var results: [SyntaxExpectation<P>] = []
+
+  for (index, line) in lines.enumerated() {
+    guard let commentRange = line.range(of: "//") else { continue }
+    let afterComment = line[commentRange.upperBound...].trimmingCharacters(in: .whitespaces)
+
+    guard afterComment.hasPrefix(prefix) else { continue }
+    let afterPrefix = afterComment.dropFirst(prefix.count).trimmingCharacters(in: .whitespaces)
+
+    let propStrings = afterPrefix.split(separator: ",").map {
+      String($0).trimmingCharacters(in: .whitespaces)
+    }
+
+    var properties: Set<P> = []
+    for propString in propStrings where !propString.isEmpty {
+      guard let prop = P(rawValue: propString) else {
+        Issue.record(
+          "Unknown property '\(propString)' at line \(index + 1). Valid: \(P.allCases.map(\.rawValue))",
+          sourceLocation: sourceLocation
+        )
+        continue
+      }
+      properties.insert(prop)
+    }
+
+    results.append(SyntaxExpectation(line: index + 1, properties: properties))
+  }
+
+  return results
+}
+
+// MARK: - LCS-based diff algorithm
+
 enum Change: String {
   case add = "+", remove = "-", same = " "
 }
