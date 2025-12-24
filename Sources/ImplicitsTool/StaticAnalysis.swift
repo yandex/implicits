@@ -77,7 +77,7 @@ public enum StaticAnalysis {
       diagnostics: &diagnostics
     )
 
-    let reqGraph = buildRequrementsGraph(
+    let reqGraph = buildRequirementsGraph(
       sema: Array(zip(syntaxTrees, semaTrees)),
       diagnostics: &diagnostics,
       dependencies: dependencies.flatMap { $0.symbols.map { symbol in
