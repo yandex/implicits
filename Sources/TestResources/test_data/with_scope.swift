@@ -18,7 +18,7 @@ private func entry() throws {
       defer { scope.end() }
 
       @Implicit()
-      var _: UInt16 = 0
+      var v1: UInt16 = 0
 
       requireUInt8(scope)
       requireUInt16(scope)
@@ -156,7 +156,7 @@ private func requireUInt8(_ scope: ImplicitScope) {
 
 private func requireUInt16(_ scope: ImplicitScope) {
   @Implicit()
-  var _: UInt16
+  var v1: UInt16
 }
 
 private struct Err: Error {}

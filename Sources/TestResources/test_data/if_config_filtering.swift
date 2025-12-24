@@ -6,55 +6,55 @@ import Implicits
 private func tests() {
   withScope { scope in // expected-error {{Unresolved requirement: UInt8}}
     #if A
-    @Implicit var _: UInt8
+    @Implicit() var v1: UInt8
     #else
-    @Implicit var _: UInt16
+    @Implicit() var v2: UInt16
     #endif
   }
 
   withScope { scope in // expected-error {{Unresolved requirement: UInt64}}
     #if D
-    @Implicit var _: UInt32
+    @Implicit() var v1: UInt32
     #else
-    @Implicit var _: UInt64
+    @Implicit() var v1: UInt64
     #endif
   }
 
   withScope { scope in // expected-error {{Unresolved requirements: Int16, Int8}}
     #if os(iOS)
-    @Implicit var _: Int8
+    @Implicit() var v1: Int8
     #elseif A
-    @Implicit var _: Int16
+    @Implicit() var v1: Int16
     #else
-    @Implicit var _: Int32
+    @Implicit() var v1: Int32
     #endif
   }
 
   withScope { scope in // expected-error {{Unresolved requirement: Int}}
     #if A
       #if D
-      @Implicit var _: Float
+      @Implicit() var v1: Float
       #else
-      @Implicit var _: Int
+      @Implicit() var v1: Int
       #endif
     #else
-    @Implicit var _: Double
+    @Implicit() var v1: Double
     #endif
   }
 
   withScope { scope in // expected-error {{Unresolved requirement: String}}
     #if A && B
-    @Implicit var _: String
+    @Implicit() var v1: String
     #else
-    @Implicit var _: Character
+    @Implicit() var v1: Character
     #endif
   }
 
   withScope { scope in // expected-error {{Unresolved requirement: Bool}}
     #if !D
-    @Implicit var _: Bool
+    @Implicit() var v1: Bool
     #else
-    @Implicit var _: Never
+    @Implicit() var v1: Never
     #endif
   }
 }

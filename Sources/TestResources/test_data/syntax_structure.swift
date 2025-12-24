@@ -111,6 +111,17 @@ private func entry3() {
 }
 #endif
 
+func `underscore variable name`() {
+  let scope = ImplicitScope() // expected-error {{Unresolved requirement: Int}}
+  defer { scope.end() }
+  
+  @Implicit()
+  var _: Int = 42 // expected-error {{Anonymous implicit will not be saved to context}}
+  
+  @Implicit()
+  var v1: Int
+}
+
 // expected-error@+2 {{'ImplicitScope' argument in function declaration must be wildcard. Possible variants are: '_: ImplicitScope' or '_ scope: ImplicitScope'}}
 // expected-error@+1 {{Excess 'ImplicitScope' parameter in function declaration}}
 private func f1(scope: ImplicitScope, _: ImplicitScope) {

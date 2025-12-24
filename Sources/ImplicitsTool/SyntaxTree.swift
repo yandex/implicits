@@ -961,3 +961,12 @@ extension SyntaxTree.Argument {
     )
   }
 }
+
+extension SyntaxTree.VariableDecl.Pattern {
+  var isWildcard: Bool {
+    switch self {
+    case .wildcard: true
+    case .identifier, .tuple, .unsupported: false
+    }
+  }
+}

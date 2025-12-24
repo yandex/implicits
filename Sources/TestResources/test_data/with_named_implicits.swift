@@ -7,15 +7,15 @@ private func basicUsage() {
   defer { scope.end() }
 
   let _: () -> Void = withZeroArgsImplicits { scope in
-    @Implicit var _: UInt8
+    @Implicit() var v1: UInt8
   }
 
   let _: (Int) -> Void = withOneArgImplicits { (a: Int, scope) in
-    @Implicit var _: UInt16
+    @Implicit() var v1: UInt16
   }
 
   let _: (String, Bool) -> Void = withTwoArgsImplicits { (a: String, b: Bool, scope) in
-    @Implicit var _: UInt32
+    @Implicit() var v1: UInt32
   }
 }
 
@@ -25,10 +25,10 @@ private func nestedWrappers() {
   defer { scope.end() }
 
   _ = withOuterImplicits { scope in
-    @Implicit var _: Int8
+    @Implicit() var v1: Int8
 
     _ = withInnerImplicits { (_: Int, scope) in
-      @Implicit var _: Int16
+      @Implicit() var v2: Int16
     }
   }
 }
@@ -40,11 +40,11 @@ private func conditionalBranches() {
 
   if Bool.random() {
     _ = withBranchAImplicits { scope in
-      @Implicit var _: Int32
+      @Implicit() var v1: Int32
     }
   } else {
     _ = withBranchBImplicits { (_: Int, scope) in
-      @Implicit var _: Int64
+      @Implicit() var v1: Int64
     }
   }
 }
@@ -59,7 +59,7 @@ private func bagCapture() {
     defer { scope.end() }
 
     _ = withBagImplicits { scope in
-      @Implicit var _: Float
+      @Implicit() var v1: Float
     }
   }
   closure()
@@ -68,22 +68,22 @@ private func bagCapture() {
 private func missingScope() {
   // expected-error@+1 {{Using implicits without 'ImplicitScope'}}
   let _: () -> Void = withOrphanImplicits { scope in
-    @Implicit var _: Double
+    @Implicit() var v1: Double
   }
 }
 
 private func duplicateNames(_: ImplicitScope) {
   // expected-note@+1 {{Previous wrapper here}}
   _ = withDuplicateImplicits { scope in
-    @Implicit var _: UInt8
+    @Implicit() var v1: UInt8
   }
 
   // expected-error@+1 {{Implicit closure wrappers must have unique names, 'withDuplicateImplicits' is already defined}}
   _ = withDuplicateImplicits { scope in
-    @Implicit var _: Int8
+    @Implicit() var v1: Int8
   }
 
   _ = withDuplicateImplicits { scope in
-    @Implicit var _: Int16
+    @Implicit() var v1: Int16
   }
 }
