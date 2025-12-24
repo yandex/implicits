@@ -55,13 +55,13 @@ private func entry1() {
   func nestedFunc2() {
     // expected-error@+2 {{Using implicits without 'ImplicitScope'}}
     @Implicit()
-    var _: UInt32
+    var v1: UInt32
   }
 
   // expected-error@+1 {{Nested functions with scope parameter are not supported}}
   func nestedFuncWithScope(_ scope: ImplicitScope) {
     @Implicit()
-    var _: UInt32
+    var v1: UInt32
   }
 
   func nestedFuncWithNestedScope() {
@@ -77,7 +77,7 @@ private func entry1() {
     defer { scope.end() }
 
     @Implicit()
-    var _: UInt64
+    var v1: UInt64
   }
 
   if Bool.random() {

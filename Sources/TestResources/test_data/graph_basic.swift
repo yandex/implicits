@@ -9,20 +9,20 @@ func topLevel1() {
   defer { scope.end() }
 
   @Implicit()
-  var _: Dep1 = Dep1()
+  var d1: Dep1 = Dep1()
 
   @Implicit
-  var _: Dep2 = Dep2()
+  var d2: Dep2 = Dep2()
 
   @Implicit
-  var _: Dep3 = Dep3()
+  var d3: Dep3 = Dep3()
 
   if Bool.random() {
     let scope = scope.nested()
     defer { scope.end() }
 
     @Implicit
-    var _: Dep3 = Dep3()
+    var d4: Dep3 = Dep3()
 
     lowest(scope)
   }
@@ -35,10 +35,10 @@ func topLevel2() {
   defer { scope.end() }
 
   @Implicit()
-  var _: Dep1 = Dep1()
+  var d1: Dep1 = Dep1()
 
   @Implicit
-  var _: Dep2 = Dep2()
+  var d2: Dep2 = Dep2()
 }
 
 func topLevel3() {
@@ -46,10 +46,10 @@ func topLevel3() {
   defer { scope.end() }
 
   @Implicit()
-  var _: Dep1 = Dep1()
+  var d1: Dep1 = Dep1()
 
   @Implicit
-  var _: Dep2 = Dep2()
+  var d2: Dep2 = Dep2()
 
   intermediate1(scope)
 }
@@ -63,7 +63,7 @@ func intermediate2(_ scope: ImplicitScope) {
   defer { scope.end() }
 
   @Implicit
-  var _: Dep3 = Dep3()
+  var d1: Dep3 = Dep3()
 
   lowest(scope)
 }

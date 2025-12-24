@@ -639,9 +639,13 @@ enum SemaTreeBuilder<
       context: &context
     )
     if let implicit {
-      nestedNodes.append(
-        .init(syntax: syntax, node: .implicit(implicit))
-      )
+      if binding.name.isWildcard {
+        context.diagnose(.anonymousImplicit, at: syntax)
+      } else {
+        nestedNodes.append(
+          .init(syntax: syntax, node: .implicit(implicit))
+        )
+      }
     }
 
     return nestedNodes
@@ -1557,6 +1561,9 @@ extension DiagnosticMessage {
 
   fileprivate static let storedPropertyInSetMode: Self =
     "Stored Implicit property cannot have initial value"
+  
+  fileprivate static let anonymousImplicit: Self =
+    "Anonymous implicit will not be saved to context"
 
   // MARK: Scopes
 
