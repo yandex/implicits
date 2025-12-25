@@ -45,6 +45,8 @@ extension SyntaxTree.CodeBlockStatement {
       }
     case let .expr(expr):
       expr.isAsync
+    case let .ifConfig(ifConfig):
+      ifConfig.clauses.contains { $0.body.contains(where: \.isAsync) }
     }
   }
 
@@ -65,6 +67,8 @@ extension SyntaxTree.CodeBlockStatement {
       }
     case let .expr(expr):
       expr.isThrowing
+    case let .ifConfig(ifConfig):
+      ifConfig.clauses.contains { $0.body.contains(where: \.isThrowing) }
     }
   }
 }

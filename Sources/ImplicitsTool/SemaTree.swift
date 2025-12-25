@@ -77,6 +77,7 @@ enum SemaTree<Syntax> {
     case withNamedImplicits(wrapperName: String, closureParamCount: Int, body: [CodeBlockItem])
     case implicitMap(from: ImplicitKey, to: ImplicitKey)
     case implicit(Implicit)
+    case unresolvedIfConfigBlock(condition: Syntax, body: [CodeBlockItem])
   }
 
   typealias TopLevel = WithSyntax<TopLevelNode>
@@ -257,6 +258,11 @@ extension SemaTree.CodeBlockItemNode {
       )
     case let .implicitMap(from: from, to: to):
       .implicitMap(from: from, to: to)
+    case let .unresolvedIfConfigBlock(condition: condition, body: body):
+      .unresolvedIfConfigBlock(
+        condition: transform(condition),
+        body: body.map { $0.mapSyntax(transform) }
+      )
     }
   }
 }

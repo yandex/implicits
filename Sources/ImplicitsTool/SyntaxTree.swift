@@ -24,7 +24,7 @@ public enum SyntaxTree<Syntax> {
     case `import`(ImportDecl)
     case declaration(Declaration)
     case `extension`(Extension)
-    case ifConfig(IfConfig)
+    case ifConfig(IfConfig<TopLevelEntity>)
   }
 
   /// Enum defining kinds of declarations that can be part of a type's
@@ -42,6 +42,7 @@ public enum SyntaxTree<Syntax> {
     case decl(Declaration)
     case stmt(Statement)
     case expr(Expression)
+    case ifConfig(IfConfig<CodeBlockEntity>)
   }
 
   /// Statements within a code block.
@@ -82,16 +83,16 @@ public enum SyntaxTree<Syntax> {
     public var path: [String]
   }
 
-  public struct IfConfig {
-    public enum Condition {
-      case `if`(Syntax)
-      case elif(Syntax)
-      case `else`
-    }
+  public enum IfConfigCondition {
+    case `if`(Syntax)
+    case elif(Syntax)
+    case `else`
+  }
 
+  public struct IfConfig<Body> {
     public struct Clause {
-      public var condition: Condition
-      public var body: [TopLevelEntity]
+      public var condition: IfConfigCondition
+      public var body: [Body]
     }
 
     public var clauses: [Clause]
@@ -538,7 +539,7 @@ extension SyntaxTree.TopLevelStatement {
     case let .extension(v):
       .extension(v.mapSyntax(t))
     case let .ifConfig(v):
-      .ifConfig(v.mapSyntax(t))
+      .ifConfig(v.mapSyntax(t, bodyTransform: { $0.mapSyntax(t) }))
     }
   }
 }
@@ -556,26 +557,32 @@ extension SyntaxTree.ImportDecl {
 }
 
 extension SyntaxTree.IfConfig {
-  func mapSyntax<S>(_ t: (Syntax) -> S) -> SyntaxTree<S>.IfConfig {
+  func mapSyntax<S, NewBody>(
+    _ t: (Syntax) -> S,
+    bodyTransform: (Body) -> NewBody
+  ) -> SyntaxTree<S>.IfConfig<NewBody> {
     .init(
-      clauses: clauses.map { $0.mapSyntax(t) }
+      clauses: clauses.map { $0.mapSyntax(t, bodyTransform: bodyTransform) }
     )
   }
 }
 
 extension SyntaxTree.IfConfig.Clause {
-  func mapSyntax<S>(_ t: (Syntax) -> S) -> SyntaxTree<S>.IfConfig.Clause {
+  func mapSyntax<S, NewBody>(
+    _ t: (Syntax) -> S,
+    bodyTransform: (Body) -> NewBody
+  ) -> SyntaxTree<S>.IfConfig<NewBody>.Clause {
     .init(
       condition: condition.mapSyntax(t),
-      body: body.map { $0.mapSyntax(t) }
+      body: body.map(bodyTransform)
     )
   }
 }
 
-extension SyntaxTree.IfConfig.Condition {
+extension SyntaxTree.IfConfigCondition {
   func mapSyntax<S>(
     _ t: (Syntax) -> S
-  ) -> SyntaxTree<S>.IfConfig.Condition {
+  ) -> SyntaxTree<S>.IfConfigCondition {
     switch self {
     case let .if(v): .if(t(v))
     case let .elif(v): .elif(t(v))
@@ -604,6 +611,8 @@ extension SyntaxTree.CodeBlockStatement {
       .stmt(v.mapSyntax(t))
     case let .expr(e):
       .expr(e.mapSyntax(t))
+    case let .ifConfig(v):
+      .ifConfig(v.mapSyntax(t, bodyTransform: { $0.map(t, ST.CodeBlockStatement.mapSyntax) }))
     }
   }
 }

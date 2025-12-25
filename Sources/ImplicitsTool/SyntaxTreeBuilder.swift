@@ -48,7 +48,7 @@ private let fileVisitorFactory: @Sendable (CompilationConditionsConfig)
   -> SyntaxVisitor<[TopLevelEntity]> = { ifConfig in
     SyntaxVisitor<[TopLevelEntity]>(
       visitImportDecl: visitSyntax(TopLevelStatement.import),
-      visitIfConfigDecl: visitSyntax(TopLevelStatement.ifConfig),
+      visitIfConfigDecl: visitSyntax(TopLevelIfConfigWitness.self, TopLevelStatement.ifConfig),
       visitClassDecl: visitSyntax(TopLevelStatement.declaration),
       visitStructDecl: visitSyntax(TopLevelStatement.declaration),
       visitEnumDecl: visitSyntax(TopLevelStatement.declaration),
@@ -77,6 +77,7 @@ private let memberBlockVisitorFactory: @Sendable (CompilationConditionsConfig)
 private let codeBlockVisitorFactory: @Sendable (CompilationConditionsConfig)
   -> SyntaxVisitor<[CodeBlockEntity]> = { ifConfig in
     SyntaxVisitor<[CodeBlockEntity]>(
+      visitIfConfigDecl: visitSyntax(CodeBlockIfConfigWitness.self, CodeBlockStatement.ifConfig),
       visitFunctionDecl: visitSyntax(CodeBlockStatement.decl),
       visitDeferStmt: visitSyntax { CodeBlockStatement.stmt(.defer($0)) },
       visitDoStmt: visitSyntax { CodeBlockStatement.stmt(.do($0)) },
@@ -89,16 +90,16 @@ private let codeBlockVisitorFactory: @Sendable (CompilationConditionsConfig)
     ).filterInactiveIfConfig(config: ifConfig)
   }
 
-// MARK: Visitor Helpers
+// MARK: Syntax Description Witness Pattern
 
-extension GeneralVisitor {
-  fileprivate func walk<T>(
-    syntax: some SyntaxProtocol
-  ) -> State where State == [T] {
-    walk(initial: [], syntax: syntax)
-  }
+/// Core abstraction: witness that can extract a description from a syntax node
+private protocol SyntaxDescriptionWitness {
+  associatedtype Syntax: SyntaxProtocol
+  associatedtype Description
+  static func syntaxDescription(of syntax: Syntax, context: Context) -> Description
 }
 
+/// Protocol for syntax nodes that can describe themselves
 private protocol SyntaxDescriptionProvider: SyntaxProtocol {
   associatedtype Description
   func syntaxDescription(context: Context) -> Description
@@ -110,16 +111,41 @@ extension SyntaxDescriptionProvider {
   }
 }
 
-private func visitSyntax<Provider, Description, Statement>(
-  _ factory: @escaping (Description) -> Statement
-) -> SyntaxVisitor<[SXT.Entity<Statement>]>.Visitor<Provider>
-  where Provider: SyntaxDescriptionProvider, Provider.Description == Description {
+/// Witness for types that describe themselves via SyntaxDescriptionProvider
+private enum SyntaxSelfDescribing<P: SyntaxDescriptionProvider>: SyntaxDescriptionWitness {
+  static func syntaxDescription(of syntax: P, context: Context) -> P.Description {
+    syntax.syntaxDescription(context: context)
+  }
+}
+
+/// Creates a visitor that uses a witness to extract description and wraps it with factory
+private func visitSyntax<W: SyntaxDescriptionWitness, Statement>(
+  _: W.Type,
+  _ factory: @escaping (W.Description) -> Statement
+) -> SyntaxVisitor<[SXT.Entity<Statement>]>.Visitor<W.Syntax> {
   { state, syntax in
     state.sxt.append(.init(
-      value: factory(syntax.syntaxDescription(context: state.ctx)),
+      value: factory(W.syntaxDescription(of: syntax, context: state.ctx)),
       syntax: syntax
     ))
     return .skipChildren
+  }
+}
+
+/// Convenience for self-describing types - uses SyntaxSelfDescribing witness
+private func visitSyntax<Provider: SyntaxDescriptionProvider, Statement>(
+  _ factory: @escaping (Provider.Description) -> Statement
+) -> SyntaxVisitor<[SXT.Entity<Statement>]>.Visitor<Provider> {
+  visitSyntax(SyntaxSelfDescribing<Provider>.self, factory)
+}
+
+// MARK: Visitor Helpers
+
+extension GeneralVisitor {
+  fileprivate func walk<T>(
+    syntax: some SyntaxProtocol
+  ) -> State where State == [T] {
+    walk(initial: [], syntax: syntax)
   }
 }
 
@@ -207,23 +233,46 @@ extension ProtocolDeclSyntax: SyntaxDescriptionProvider {
   }
 }
 
-extension IfConfigDeclSyntax: SyntaxDescriptionProvider {
-  fileprivate func syntaxDescription(context: Context) -> SXT.IfConfig {
-    .init(clauses: clauses.map { $0.syntaxDescription(context: context) })
+// MARK: IfConfig Witnesses
+
+private enum TopLevelIfConfigWitness: SyntaxDescriptionWitness {
+  static func syntaxDescription(
+    of syntax: IfConfigDeclSyntax, context: Context
+  ) -> SXT.IfConfig<TopLevelEntity> {
+    .init(clauses: syntax.clauses.map { $0.topLevelClause(context: context) })
+  }
+}
+
+private enum CodeBlockIfConfigWitness: SyntaxDescriptionWitness {
+  static func syntaxDescription(
+    of syntax: IfConfigDeclSyntax, context: Context
+  ) -> SXT.IfConfig<CodeBlockEntity> {
+    .init(clauses: syntax.clauses.map { $0.codeBlockClause(context: context) })
   }
 }
 
 extension IfConfigClauseSyntax {
-  fileprivate func syntaxDescription(context: Context) -> SXT.IfConfig.Clause {
-    let parsedCondition = condition.map(Syntax.init(_:)).map {
+  fileprivate func parsedCondition() -> SXT.IfConfigCondition {
+    condition.map(Syntax.init(_:)).map {
       poundKeyword.tokenKind == .poundIf ?
-        SXT.IfConfig.Condition.if($0) : .elif($0)
+        SXT.IfConfigCondition.if($0) : .elif($0)
     } ?? .else
+  }
 
-    return SXT.IfConfig.Clause(
-      condition: parsedCondition,
+  fileprivate func topLevelClause(context: Context) -> SXT.IfConfig<TopLevelEntity>.Clause {
+    .init(
+      condition: parsedCondition(),
       body: elements.map {
         context.fileVisitor().walk(initial: ([], context), syntax: $0).sxt
+      } ?? []
+    )
+  }
+
+  fileprivate func codeBlockClause(context: Context) -> SXT.IfConfig<CodeBlockEntity>.Clause {
+    .init(
+      condition: parsedCondition(),
+      body: elements?.children(viewMode: .sourceAccurate).flatMap {
+        context.codeBlockVisitor().walk(initial: ([], context), syntax: $0).sxt
       } ?? []
     )
   }

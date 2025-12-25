@@ -323,6 +323,7 @@ extension UnresolvedGraph {
 
     var parent: Idx?
     var scope: Scope?
+    var ifConfigCondition: Syntax?
     var bagReferences: [Idx]
     var allowsStoredBagUsage: Bool
     var file: File
@@ -331,21 +332,15 @@ extension UnresolvedGraph {
       scope != nil
     }
 
-    var hasWritableScope: Bool {
-      if case .local = scope {
-        true
-      } else {
-        false
-      }
-    }
-
     init(
       parent: Idx?, scope: Scope?,
+      insideIfConfigCondition: Syntax?,
       bagReferences: [Idx], allowsStoredBagUsage: Bool,
       file: File
     ) {
       self.parent = parent
       self.scope = scope
+      self.ifConfigCondition = insideIfConfigCondition
       self.bagReferences = bagReferences
       self.allowsStoredBagUsage = allowsStoredBagUsage
       self.file = file
@@ -361,6 +356,7 @@ extension UnresolvedGraph {
       CodeBlockState(
         parent: parent,
         scope: inheritsScope ? .inherited : nil,
+        insideIfConfigCondition: nil,
         bagReferences: bagReferences,
         allowsStoredBagUsage: allowsStoredBagUsage,
         file: file
@@ -371,7 +367,12 @@ extension UnresolvedGraph {
     var innerScopeLense: Self {
       get {
         var copy = self
-        copy.scope = hasScope ? .inherited : nil
+        copy.scope =
+          switch scope {
+          case .inherited, .local: .inherited
+          case nil: nil
+          }
+        copy.ifConfigCondition = nil
         return copy
       }
       set {
@@ -382,6 +383,17 @@ extension UnresolvedGraph {
     var deferLense: Self {
       get { self }
       set { self = newValue }
+    }
+
+    subscript(insideIfConfigCondition condition: Syntax) -> Self {
+      get {
+        var copy = self
+        copy.ifConfigCondition = condition
+        return copy
+      }
+      set {
+        self.bagReferences = newValue.bagReferences
+      }
     }
 
     mutating func beginLocalScope(
@@ -418,7 +430,7 @@ extension UnresolvedGraph {
 
     func checkOnScopeExit(into diagnostics: inout Diagnostics) {
       switch scope {
-      case .inherited:
+      case .inherited, .none:
         break
       case let .local(declared, ended):
         diagnostics.check(
@@ -426,8 +438,22 @@ extension UnresolvedGraph {
           or: .scopeIsNotEnded,
           at: declared
         )
-      case .none:
+      }
+    }
+
+    func checkOnWriteAccess(into diagnostics: inout Diagnostics, at syntax: Syntax) {
+      switch scope {
+      case .inherited, .none:
+        diagnostics.diagnose(.noWritableScope, at: syntax)
+      case .local:
         break
+      }
+      if let ifConfigCondition {
+        diagnostics.diagnose(
+          .noMutationInIfConfig,
+          at: syntax
+        )
+        diagnostics.note(.unresolvedIfConfigCondition, at: ifConfigCondition)
       }
     }
   }
@@ -536,6 +562,11 @@ extension UnresolvedGraph {
       state.parent = new
       diagnostics.check(state.hasScope, or: .noScope, at: sema.syntax)
     case let .implicitScopeBegin(nested: nested, withBag: usesBag):
+      if let condition = state.ifConfigCondition {
+        diagnostics.diagnose(.noScopeInIfConfig, at: sema.syntax)
+        diagnostics.note(.unresolvedIfConfigCondition, at: condition)
+      }
+
       let new = addNode(syntax: sema.syntax, parent: nil)
       switch (nested: nested, usesBag: usesBag, parent: state.parent) {
       case (nested: false, usesBag: false, parent: _):
@@ -577,7 +608,7 @@ extension UnresolvedGraph {
           provides: [implicit.key],
           parent: state.parent
         )
-        diagnostics.check(state.hasWritableScope, or: .noWritableScope, at: sema.syntax)
+        state.checkOnWriteAccess(into: &diagnostics, at: sema.syntax)
       }
     case let .implicitMap(from: from, to: to):
       state.parent = addNode(
@@ -586,7 +617,7 @@ extension UnresolvedGraph {
         requires: [from],
         parent: state.parent
       )
-      diagnostics.check(state.hasWritableScope, or: .noWritableScope, at: sema.syntax)
+      state.checkOnWriteAccess(into: &diagnostics, at: sema.syntax)
     case let .withScope(nested: isNested, withBag: usesBag, body: body):
       var innerState = state.innerScopeLense
       defer { state.innerScopeLense = innerState }
@@ -639,6 +670,8 @@ extension UnresolvedGraph {
       innerState.beginLocalScope(nested: false, at: sema.syntax, diagnostics: &diagnostics)
       innerState.endLocalScope(at: sema.syntax, diagnostics: &diagnostics)
       traverseCodeBlock(body, state: &innerState)
+    case let .unresolvedIfConfigBlock(condition: condition, body: body):
+      traverseCodeBlock(body, state: &state[insideIfConfigCondition: condition])
     }
   }
 
@@ -679,6 +712,8 @@ extension UnresolvedGraph {
         fDecl.body.forEach(checkNoImplicitStatements)
       case let .innerScope(scope):
         scope.forEach(checkNoImplicitStatements)
+      case let .unresolvedIfConfigBlock(condition: _, body: body):
+        body.forEach(checkNoImplicitStatements)
       }
     }
     for node in nodes {
@@ -751,4 +786,12 @@ extension DiagnosticMessage {
 
   fileprivate static let noInitInTypeWithImplicitProperties: Self =
     "Type with '@Implicit' stored properties or stored implicits bag must have an initializer with 'scope' argument"
+
+  // Unresolved #if blocks
+  fileprivate static let unresolvedIfConfigCondition: Self =
+    "Unable to resolve condition"
+  fileprivate static let noMutationInIfConfig: Self =
+    "Cannot mutate implicit context inside '#if' block with unresolved condition"
+  fileprivate static let noScopeInIfConfig: Self =
+    "Cannot create implicit scope inside '#if' block with unresolved condition"
 }

@@ -368,7 +368,45 @@ enum SemaTreeBuilder<
         syntax: entity.syntax,
         context: &context
       )
+    case let .ifConfig(ifConfig):
+      return visit(
+        ifConfig: ifConfig,
+        syntax: entity.syntax,
+        context: &context
+      )
     }
+  }
+
+  private static func visit(
+    ifConfig: SXT.IfConfig<CodeBlockEntity>,
+    syntax: Syntax,
+    context: inout Context
+  ) -> [CodeBlockItem] {
+    var result: [CodeBlockItem] = []
+    var lastConditionSyntax: Syntax?
+
+    for clause in ifConfig.clauses {
+      let conditionSyntax: Syntax
+      switch clause.condition {
+      case let .if(s):
+        lastConditionSyntax = s
+        conditionSyntax = s
+      case let .elif(s):
+        lastConditionSyntax = s
+        conditionSyntax = s
+      case .else:
+        conditionSyntax = lastConditionSyntax ?? syntax
+      }
+
+      let bodyItems = visit(codeBlockEntities: clause.body, context: &context)
+
+      result.append(CodeBlockItem(
+        syntax: syntax,
+        node: .unresolvedIfConfigBlock(condition: conditionSyntax, body: bodyItems)
+      ))
+    }
+
+    return result
   }
 
   private static func visit(
@@ -1561,7 +1599,7 @@ extension DiagnosticMessage {
 
   fileprivate static let storedPropertyInSetMode: Self =
     "Stored Implicit property cannot have initial value"
-  
+
   fileprivate static let anonymousImplicit: Self =
     "Anonymous implicit will not be saved to context"
 
