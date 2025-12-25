@@ -55,9 +55,9 @@ swift run implicits-tool-spm-plugin <args-file>
 
 ## Testing
 
-This project follows **strict TDD** and has exhaustive test coverage:
-1. Write a test first
-2. Verify the test fails
+This project follows **strict TDD**:
+1. Write a test that exercises the bug or feature
+2. Run it and verify it fails — if it passes, either the bug doesn't exist or the test is wrong; this step catches false assumptions and prevents shipping unnecessary code
 3. Implement the fix or feature
 4. Verify the test passes
 
