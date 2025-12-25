@@ -96,6 +96,11 @@ public struct FileReader {
     self.impl = impl
   }
 
+  @_spi(Testing)
+  public init(stream: InputStream) {
+    self.impl = stream
+  }
+
   public func withStream<R>(
     _ body: (inout Stream) throws -> R
   ) rethrows -> R {
@@ -120,7 +125,7 @@ public struct FileWriter {
     public func write(
       _ buffer: UnsafeRawBufferPointer
     ) throws(SerializationError) {
-      guard let baseAddress = buffer.baseAddress else { return }
+      guard buffer.count > 0, let baseAddress = buffer.baseAddress else { return }
       let bytesWritten = impl.write(
         baseAddress.assumingMemoryBound(to: UInt8.self),
         maxLength: buffer.count
@@ -150,6 +155,11 @@ public struct FileWriter {
       throw .failedToCreateStream(at: path)
     }
     self.impl = impl
+  }
+
+  @_spi(Testing)
+  public init(stream: OutputStream) {
+    self.impl = stream
   }
 
   public func withStream<R>(
