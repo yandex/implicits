@@ -1,6 +1,6 @@
 // Copyright 2024 Yandex LLC. All rights reserved.
 
-func buildRequrementsGraph<Syntax, File>(
+func buildRequirementsGraph<Syntax, File>(
   sema: [(File, [SemaTree<Syntax>.TopLevel])],
   diagnostics: inout Diagnostics<Syntax>,
   dependencies: [(symbol: SymbolInfo<Syntax>, reqs: [ImplicitKey]?)]
