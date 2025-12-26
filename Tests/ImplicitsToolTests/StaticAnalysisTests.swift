@@ -112,7 +112,7 @@ struct StaticAnalysisTests {
   }
 
   @Test func ifConfigCodeBlock() {
-    verify(file: "if_config_code_block.swift")
+    verify(file: "if_config_code_block.swift", compilationConditions: ["A", "B", "C"])
   }
 }
 

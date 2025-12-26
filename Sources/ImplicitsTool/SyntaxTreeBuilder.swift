@@ -252,6 +252,10 @@ private enum CodeBlockIfConfigWitness: SyntaxDescriptionWitness {
 }
 
 extension IfConfigClauseSyntax {
+  var bodyElements: [Syntax] {
+    elements?.children(viewMode: .sourceAccurate).map(\.self) ?? []
+  }
+
   fileprivate func parsedCondition() -> SXT.IfConfigCondition {
     condition.map(Syntax.init(_:)).map {
       poundKeyword.tokenKind == .poundIf ?
@@ -271,9 +275,9 @@ extension IfConfigClauseSyntax {
   fileprivate func codeBlockClause(context: Context) -> SXT.IfConfig<CodeBlockEntity>.Clause {
     .init(
       condition: parsedCondition(),
-      body: elements?.children(viewMode: .sourceAccurate).flatMap {
+      body: bodyElements.flatMap {
         context.codeBlockVisitor().walk(initial: ([], context), syntax: $0).sxt
-      } ?? []
+      }
     )
   }
 }

@@ -88,6 +88,49 @@ private func ifConfigCodeBlock() {
     }
     #endif
   }
+  
+  // expected-error@+1 {{Unresolved requirement: UInt16}}
+  withScope { scope in
+    #if A
+    @Implicit var v1: UInt8 = 0
+    #else
+    @Implicit var v1: UInt16 = 0
+    #endif
+    requiresUInt8(scope)
+    requiresUInt16(scope)
+  }
+
+  // expected-error@+1 {{Unresolved requirements: UInt16, UInt32, UInt8}}
+  withScope { scope in
+    #if !A
+    @Implicit var v1: UInt8 = 0
+    #elseif canImport(M1)
+    // expected-note@-1 {{Unable to resolve condition}}
+    // expected-error@+1 {{Cannot mutate implicit context inside '#if' block with unresolved condition}}
+    @Implicit var v2: UInt16 = 0
+    #else
+    // expected-error@+1 {{Cannot mutate implicit context inside '#if' block with unresolved condition}}
+    @Implicit var v3: UInt32 = 0
+    #endif
+    requiresUInt8(scope)
+    requiresUInt16(scope)
+    requiresUInt32(scope)
+  }
+
+  // expected-error@+1 {{Unresolved requirements: UInt16, UInt8}}
+  withScope { scope in
+    #if canImport(M1)
+    // expected-note@-1 {{Unable to resolve condition}}
+    // expected-error@+1 {{Cannot mutate implicit context inside '#if' block with unresolved condition}}
+    @Implicit var v1: UInt8 = 0
+    #elseif A
+    // expected-note@-1 {{Unable to resolve condition}}
+    // expected-error@+1 {{Cannot mutate implicit context inside '#if' block with unresolved condition}}
+    @Implicit var v1: UInt16 = 0
+    #endif
+    requiresUInt8(scope)
+    requiresUInt16(scope)
+  }
 }
 
 private func otherCode() {}

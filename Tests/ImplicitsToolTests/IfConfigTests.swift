@@ -8,7 +8,7 @@ import SwiftParser
 import SwiftSyntax
 
 struct IfConfigTests {
-  @Test func conditionEvaluator() throws {
+  @Test func `evaluateCondition evaluates #if conditions`() throws {
     func check(_ e: String, _ expected: Bool?) {
       var parser = Parser(e)
       let e = ExprSyntax.parse(from: &parser)
@@ -53,6 +53,25 @@ struct IfConfigTests {
     check("A != B", nil)
     check("A ** B", nil)
     check("A = B", nil)
+  }
+
+  @Test func `Trivia(preservingPositionFrom) converts syntax to spaces`() {
+    func check(_ source: String, _ expected: String) {
+      let trivia = Trivia(preservingPositionFrom: Parser.parse(source: source))
+      #expect(trivia.description == expected)
+    }
+
+    check("foo()", "     ")
+    check("// comment", "// comment")
+    check("/* block */", "/* block */")
+    check("let 💩 = 1", "         ")
+    check(
+      """
+      let x = 1
+      let y = 2
+      """,
+      "         \n         "
+    )
   }
 }
 

@@ -24,26 +24,41 @@ extension GeneralVisitor {
         }
 
         var toVisit = [IfConfigClauseSyntax]()
-        var evaluatedAtLeastOnce = false
+        var hasNonTrivial = false
 
-        for clause in node.clauses {
+        loop: for clause in node.clauses {
           switch clause.condition.flatMap(eval) {
+          case false?:
+            toVisit.append(clause.withTrivialBody())
           case nil:
             toVisit.append(clause)
+            hasNonTrivial = true
           case true?:
             toVisit.append(clause)
-            return .visit(toVisit.map(Syntax.init))
-          case false?:
-            evaluatedAtLeastOnce = true
+            if !hasNonTrivial { return .visit(toVisit.flatMap(\.bodyElements)) }
+            break loop
           }
         }
 
-        return if evaluatedAtLeastOnce {
-          .visit(toVisit.map(Syntax.init))
-        } else {
-          oldVisitor(&state, node)
-        }
+        let filtered = node.with(\.clauses, IfConfigClauseListSyntax(toVisit))
+        return oldVisitor(&state, filtered)
       }
+    }
+  }
+}
+
+extension IfConfigClauseSyntax {
+  fileprivate func withTrivialBody() -> Self {
+    guard let elements else { return self }
+    let trivia = Trivia(preservingPositionFrom: elements)
+    if let condition {
+      return self
+        .with(\.condition, condition.with(\.trailingTrivia, condition.trailingTrivia + trivia))
+        .with(\.elements, nil)
+    } else {
+      return self
+        .with(\.poundKeyword.trailingTrivia, poundKeyword.trailingTrivia + trivia)
+        .with(\.elements, nil)
     }
   }
 }
@@ -116,6 +131,33 @@ extension CompilationConditionsConfig {
       set.contains(key)
     case let .strict(dict):
       dict[key]
+    }
+  }
+}
+
+extension Trivia {
+  /// Converts syntax to trivia so that subsequent tokens retain their original source positions.
+  @_spi(Testing)
+  public init(preservingPositionFrom syntax: some SyntaxProtocol) {
+    var pieces: [TriviaPiece] = []
+
+    for token in syntax.tokens(viewMode: .sourceAccurate) {
+      pieces.append(contentsOf: token.leadingTrivia)
+      pieces.append(contentsOf: Self.triviaFromText(token.text))
+      pieces.append(contentsOf: token.trailingTrivia)
+    }
+
+    self.init(pieces: pieces)
+  }
+
+  private static func triviaFromText(_ text: String) -> [TriviaPiece] {
+    text.reduce(into: [TriviaPiece]()) { pieces, char in
+      switch (pieces.last, char == "\n") {
+      case (.newlines(let n)?, true): pieces[pieces.count - 1] = .newlines(n + 1)
+      case (.spaces(let n)?, false): pieces[pieces.count - 1] = .spaces(n + 1)
+      case (_, true): pieces.append(.newlines(1))
+      case (_, false): pieces.append(.spaces(1))
+      }
     }
   }
 }
