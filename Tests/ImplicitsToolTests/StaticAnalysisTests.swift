@@ -110,6 +110,10 @@ struct StaticAnalysisTests {
   @Test func ifConfigFiltering() {
     verify(file: "if_config_filtering.swift", compilationConditions: ["A", "B", "C"])
   }
+
+  @Test func ifConfigCodeBlock() {
+    verify(file: "if_config_code_block.swift")
+  }
 }
 
 private let anotherModule = (modulename: "AnotherModule", files: ["another_module.swift"])
