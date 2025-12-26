@@ -259,3 +259,105 @@ public func withScope<T>(
   defer { scope.end() }
   return try body(scope)
 }
+
+// MARK: - Async Variants
+
+/// Executes the given async closure with a new implicit scope and ensures it's properly ended.
+///
+/// This is a convenience function that creates a new scope, passes it to the async closure,
+/// and automatically calls `end()` when the closure completes, even if an error is thrown.
+///
+/// Example:
+/// ```
+/// await withScope { scope in
+///   @Implicit
+///   let x = 42
+///   await someAsyncWork(scope)
+/// }
+/// ```
+///
+/// - Parameter body: An async closure that takes an ImplicitScope and returns a value.
+/// - Returns: The value returned by the closure.
+/// - Throws: Rethrows any error thrown by the closure.
+@available(iOS 13, macOS 10.15, watchOS 6, tvOS 13, *)
+@inlinable
+public func withScope<T>(_ body: (ImplicitScope) async throws -> T) async rethrows -> T {
+  let scope = ImplicitScope()
+  defer { scope.end() }
+  return try await body(scope)
+}
+
+/// Executes the given async closure with a new implicit scope initialized with an implicit bag.
+///
+/// It creates a new scope with the provided implicits, passes it to the async closure,
+/// and automatically calls `end()` when the closure completes, even if an error is thrown.
+///
+/// Example:
+/// ```
+/// class MyService {
+///   let implicits = #implicits
+///
+///   init(_: ImplicitScope) {}
+///
+///   func doWork() async {
+///     await withScope(with: implicits) { scope in
+///       @Implicit
+///       var x: Int
+///       await someAsyncWork(scope)
+///     }
+///   }
+/// }
+/// ```
+///
+/// - Parameters:
+///   - implicits: The implicit bag to initialize the scope with.
+///   - body: An async closure that takes an ImplicitScope and returns a value.
+/// - Returns: The value returned by the closure.
+/// - Throws: Rethrows any error thrown by the closure.
+@available(iOS 13, macOS 10.15, watchOS 6, tvOS 13, *)
+@inlinable
+public func withScope<T>(
+  with implicits: Implicits,
+  _ body: (ImplicitScope) async throws -> T
+) async rethrows -> T {
+  let scope = ImplicitScope(with: implicits)
+  defer { scope.end() }
+  return try await body(scope)
+}
+
+/// Executes the given async closure with a nested implicit scope and ensures it's properly ended.
+///
+/// This is a convenience function that creates a nested scope from an existing scope,
+/// passes it to the async closure, and automatically calls `end()` when the closure completes,
+/// even if an error is thrown. The nested scope inherits all implicits from the outer scope.
+///
+/// Example:
+/// ```
+/// let scope = ImplicitScope()
+/// defer { scope.end() }
+///
+/// @Implicit
+/// let x = 42
+///
+/// await withScope(nesting: scope) { scope in
+///   @Implicit
+///   var x: Int // x == 42, inherited from outer scope
+///   await someAsyncWork(scope)
+/// }
+/// ```
+///
+/// - Parameters:
+///   - outer: The outer scope to nest within.
+///   - body: An async closure that takes an ImplicitScope and returns a value.
+/// - Returns: The value returned by the closure.
+/// - Throws: Rethrows any error thrown by the closure.
+@available(iOS 13, macOS 10.15, watchOS 6, tvOS 13, *)
+@inlinable
+public func withScope<T>(
+  nesting outer: ImplicitScope,
+  _ body: (ImplicitScope) async throws -> T
+) async rethrows -> T {
+  let scope = outer.nested()
+  defer { scope.end() }
+  return try await body(scope)
+}
