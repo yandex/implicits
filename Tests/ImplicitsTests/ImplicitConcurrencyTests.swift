@@ -1,4 +1,4 @@
-// Copyright 2024 Yandex LLC. All rights reserved.
+// Copyright 2025 Yandex LLC. All rights reserved.
 
 import Testing
 
@@ -61,6 +61,59 @@ struct ImplicitConcurrencyTests {
   @Test func createRootScopeInMainActor() async {
     let retrieved = await testMainActor(id: 81)
     #expect(retrieved == 81)
+  }
+  
+  @Test func childTasksScopesShouldBeIsolated() async {
+    let cp = Checkpoint<Step>()
+
+    let scope = ImplicitScope()
+    defer { scope.end() }
+
+    @Implicit(\.id)
+    var parentId = 0
+
+    let task1 = Task {
+      let scope = ImplicitScope()
+      defer { scope.end() }
+
+      @Implicit(\.id)
+      var id = 1
+
+      await cp.open(.task1Ready)
+      await cp.wait(.task2Ready)
+
+      @Implicit(\.id)
+      var readBack: Int
+
+      await cp.open(.task1Read)
+      await cp.wait(.task2Read)
+      return readBack
+    }
+
+    let task2 = Task {
+      await cp.wait(.task1Ready)
+
+      let scope = ImplicitScope()
+      defer { scope.end() }
+
+      @Implicit(\.id)
+      var id = 2
+
+      await cp.open(.task2Ready)
+      await cp.wait(.task1Read)
+
+      @Implicit(\.id)
+      var readBack: Int
+
+      await cp.open(.task2Read)
+      return readBack
+    }
+
+    let r1 = await task1.value
+    let r2 = await task2.value
+
+    #expect(r1 == 1)
+    #expect(r2 == 2)
   }
 }
 
@@ -136,5 +189,31 @@ actor SomeActor {
     var declaredLaunchID = 999
 
     return (gotId, get(\.launchID, scope))
+  }
+}
+
+enum Step {
+  case task1Ready
+  case task2Ready
+  case task1Read
+  case task2Read
+}
+
+actor Checkpoint<Step: Hashable> {
+  private var opened: Set<Step> = []
+  private var waiters: [Step: [CheckedContinuation<Void, Never>]] = [:]
+
+  func open(_ step: Step) {
+    guard opened.insert(step).inserted else { return }
+    if let list = waiters.removeValue(forKey: step) {
+      for cont in list { cont.resume() }
+    }
+  }
+
+  func wait(_ step: Step) async {
+    if opened.contains(step) { return }
+    await withCheckedContinuation { cont in
+      waiters[step, default: []].append(cont)
+    }
   }
 }

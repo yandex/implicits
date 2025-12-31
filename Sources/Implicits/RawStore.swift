@@ -28,6 +28,7 @@ internal typealias Arguments = [ImplicitKeyIdentifier: Entry]
 internal final class RawStore: @unchecked Sendable {
   private var args: ArgsStack
   private var rootScopeStackCount: Int = 0
+  private let owningTaskID: ObjectIdentifier?
 
   private static let key: pthread_key_t = {
     var key = pthread_key_t()
@@ -50,8 +51,9 @@ internal final class RawStore: @unchecked Sendable {
   @available(iOS 13, macOS 10.15, *)
   private nonisolated(unsafe) static var taskLocalStore = TaskLocal<RawStore?>(wrappedValue: nil)
 
-  private init() {
+  private init(taskID: ObjectIdentifier?) {
     self.args = ArgsStack()
+    self.owningTaskID = taskID
   }
 
   /// RawStore for current thread.
@@ -94,18 +96,25 @@ internal final class RawStore: @unchecked Sendable {
         // or store is not created yet
         if #available(iOS 13, macOS 10.15, *), isAsyncContext() {
           // Context is async, checking if there is store in task local
+          let taskID = currentTaskID()
           if let taskLocalStore = fromTaskLocal() {
-            // If there is, using it
-            inferredStore = taskLocalStore
+            if let taskID, taskLocalStore.owningTaskID != taskID {
+              let newStore = Self(taskID: taskID)
+              inferredStore = newStore
+              Self.taskLocalStore.push(newStore)
+            } else {
+              // If there is, using it
+              inferredStore = taskLocalStore
+            }
           } else {
             // or creating new
-            let newStore = Self()
+            let newStore = Self(taskID: taskID)
             inferredStore = newStore
-            taskLocalStore.push(newStore)
+            Self.taskLocalStore.push(newStore)
           }
         } else {
           // Context is sync, no store in TSD, creating new
-          let newStore = Self()
+          let newStore = Self(taskID: nil)
           inferredStore = newStore
           setToTSD(newStore)
         }
