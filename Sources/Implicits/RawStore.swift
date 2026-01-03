@@ -2,6 +2,28 @@
 
 import Darwin
 
+#if DEBUG
+/// Represents the source location where an implicit value was defined.
+/// Only available in DEBUG builds.
+public struct SourceLocation: CustomStringConvertible, Sendable {
+  /// The file identifier where the implicit value was defined.
+  public let fileID: StaticString
+
+  /// The line number where the implicit value was defined.
+  public let line: UInt
+
+  @usableFromInline
+  init(fileID: StaticString, line: UInt) {
+    self.fileID = fileID
+    self.line = line
+  }
+
+  public var description: String {
+    "\(fileID):\(line)"
+  }
+}
+#endif
+
 @usableFromInline
 internal typealias Entry = EntryAbstract
 @usableFromInline
@@ -188,10 +210,14 @@ internal final class RawStore: @unchecked Sendable {
   }
 
   #if DEBUG
-  internal func dumpCurrentScope() -> [(key: String, value: any Any)] {
+  internal func dumpCurrentScope() -> [(
+    key: String,
+    value: any Any,
+    sourceLocation: SourceLocation
+  )] {
     args.args
       .map { key, value in
-        (key.debugDescription, value.anyValue)
+        (key.debugDescription, value.anyValue, value.sourceLocation)
       }
       .sorted { lhs, rhs in
         lhs.0 < rhs.0
@@ -273,8 +299,18 @@ private func noStoreAssociatedWithCurrentContext() -> Never {
 /// Actual values are stored in subclasses of this class.
 @usableFromInline
 class EntryAbstract {
+  #if DEBUG
+  @usableFromInline
+  let sourceLocation: SourceLocation
+
+  @inlinable
+  init(sourceLocation: SourceLocation) {
+    self.sourceLocation = sourceLocation
+  }
+  #else
   @inlinable
   init() {}
+  #endif
 
   @inlinable
   deinit {}
