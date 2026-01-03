@@ -425,3 +425,63 @@ struct MultipleIDs {
 
   init(_: ImplicitScope) {}
 }
+
+#if DEBUG
+struct SourceLocationTests {
+  @Test func dumpCurrentScopeIncludesSourceLocation() {
+    let scope = ImplicitScope()
+    defer { scope.end() }
+
+    @Implicit(\.id)
+    var id = 42
+    let declarationLine: UInt = #line - 2
+
+    let dump = ImplicitScope.dumpCurrent()
+    let entry = dump.first { $0.key.lowercased().contains("id") }
+
+    #expect(entry != nil)
+    if let entry {
+      let fileIDString = String(describing: entry.sourceLocation.fileID)
+      #expect(fileIDString.hasSuffix("ImplicitTests.swift"))
+      #expect(entry.sourceLocation.line == declarationLine)
+      #expect(entry.sourceLocation.description == "\(fileIDString):\(declarationLine)")
+    }
+  }
+
+  @Test func mapOperationTracksSourceLocation() {
+    let scope = ImplicitScope()
+    defer { scope.end() }
+
+    @Implicit(\.id)
+    var id = 42
+
+    Implicit.map(\.id, to: \.launchID) { $0 }
+    let mapLine: UInt = #line - 1
+
+    let dump = ImplicitScope.dumpCurrent()
+    let entry = dump.first { $0.key.lowercased().contains("launchid") }
+
+    #expect(entry != nil)
+    if let entry {
+      let fileIDString = String(describing: entry.sourceLocation.fileID)
+      #expect(fileIDString.hasSuffix("ImplicitTests.swift"))
+      #expect(entry.sourceLocation.line == mapLine)
+    }
+  }
+
+  @Test func formattedOutputIncludesLocation() {
+    let scope = ImplicitScope()
+    defer { scope.end() }
+
+    @Implicit(\.id)
+    var id = 123
+    let declarationLine: UInt = #line - 2
+
+    let dump = ImplicitScope.dumpCurrent()
+    let formatted = dump.formatted
+
+    #expect(formatted.contains("(defined at"))
+    #expect(formatted.contains("ImplicitTests.swift:\(declarationLine))"))
+  }
+}
+#endif

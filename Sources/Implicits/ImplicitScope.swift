@@ -111,19 +111,19 @@ extension ImplicitScope {
   /// DebugCollection represents a collection of implicit parameters available
   /// in the scope in a way suitable for debug purposes.
   public struct DebugCollection: Collection {
-    public typealias Element = (key: String, value: any Any)
+    public typealias Element = (key: String, value: any Any, sourceLocation: SourceLocation)
     public typealias Index = Array<Element>.Index
 
     internal var entries: [Element]
 
-    internal init(entries: [(key: String, value: any Any)]) {
+    internal init(entries: [Element]) {
       self.entries = entries
     }
 
     /// Returns parameters whose keys contain the given substring.
     public subscript(like keyName: String) -> [Element] {
       let keyName = keyName.lowercased()
-      return entries.filter { key, _ in
+      return entries.filter { key, _, _ in
         key.lowercased().contains(keyName)
       }
     }
@@ -131,6 +131,13 @@ extension ImplicitScope {
     /// Returns all the keys of the scope.
     public var keys: [String] {
       entries.map(\.key)
+    }
+
+    /// Returns a formatted string with locations for debugging.
+    public var formatted: String {
+      entries.map { key, value, location in
+        "\(key): \(value) (defined at \(location))"
+      }.joined(separator: "\n")
     }
 
     public func makeIterator() -> Array<Element>.Iterator {
@@ -153,7 +160,7 @@ extension ImplicitScope {
       entries.index(after: i)
     }
 
-    public subscript(position: Array<Element>.Index) -> (key: String, value: Any) {
+    public subscript(position: Array<Element>.Index) -> Element {
       _read {
         yield entries[position]
       }

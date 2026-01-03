@@ -48,9 +48,11 @@ public struct Implicit<Key: ImplicitKeyType> {
   /// - Parameter scope: Scope to keep alive
   @inlinable
   public init(
-    wrappedValue: Value, _: KeySpecifier<Key>
+    wrappedValue: Value, _: KeySpecifier<Key>,
+    fileID: StaticString = #fileID,
+    line: UInt = #line
   ) {
-    Self.setValue(wrappedValue)
+    Self.setValue(wrappedValue, fileID: fileID, line: line)
     self.init(value: wrappedValue)
   }
 
@@ -69,9 +71,11 @@ public struct Implicit<Key: ImplicitKeyType> {
   /// - Parameter scope: Scope to keep alive
   @inlinable
   public init<T>(
-    wrappedValue: T
+    wrappedValue: T,
+    fileID: StaticString = #fileID,
+    line: UInt = #line
   ) where Key == TypeImplicitKey<T> {
-    Self.setValue(wrappedValue)
+    Self.setValue(wrappedValue, fileID: fileID, line: line)
     self.init(value: wrappedValue)
   }
 
@@ -97,9 +101,11 @@ public struct Implicit<Key: ImplicitKeyType> {
   /// - Parameter key: The value type of the implicit argument.
   @inlinable
   public init<T>(
-    wrappedValue: T, _: T.Type
+    wrappedValue: T, _: T.Type,
+    fileID: StaticString = #fileID,
+    line: UInt = #line
   ) where Key == TypeImplicitKey<T> {
-    Self.setValue(wrappedValue)
+    Self.setValue(wrappedValue, fileID: fileID, line: line)
     self.init(value: wrappedValue)
   }
 
@@ -114,8 +120,12 @@ public struct Implicit<Key: ImplicitKeyType> {
   }
 
   @inlinable
-  static func setValue(_ value: Value) {
-    Store.current().value = value
+  static func setValue(
+    _ value: Value,
+    fileID: StaticString = #fileID,
+    line: UInt = #line
+  ) {
+    Store.current().setValue(value, fileID: fileID, line: line)
   }
 }
 
@@ -135,10 +145,12 @@ extension Implicit {
   public static func map<To: ImplicitKeyType>(
     _ from: KeySpecifier<Key>,
     to: KeySpecifier<To>,
-    _ transform: (Key.Value) -> To.Value
+    _ transform: (Key.Value) -> To.Value,
+    fileID: StaticString = #fileID,
+    line: UInt = #line
   ) {
     let store = TypedStore.current()
-    store[to] = transform(store[from])
+    store.setValue(transform(store[from]), for: to, fileID: fileID, line: line)
   }
 
   ///  Maps the value of the implicit argument to the value of another implicit argument
@@ -156,10 +168,12 @@ extension Implicit {
   public static func map<From, To: ImplicitKeyType>(
     _ from: From.Type,
     to: KeySpecifier<To>,
-    _ transform: (Key.Value) -> To.Value
+    _ transform: (Key.Value) -> To.Value,
+    fileID: StaticString = #fileID,
+    line: UInt = #line
   ) where Key == TypeImplicitKey<From> {
     let store = TypedStore.current()
-    store[to] = transform(store[from])
+    store.setValue(transform(store[from]), for: to, fileID: fileID, line: line)
   }
 
   ///  Maps the value of the implicit argument to the value of another implicit argument
@@ -177,10 +191,12 @@ extension Implicit {
   public static func map<To>(
     _ from: KeySpecifier<Key>,
     to: To.Type,
-    _ transform: (Key.Value) -> To
+    _ transform: (Key.Value) -> To,
+    fileID: StaticString = #fileID,
+    line: UInt = #line
   ) {
     let store = TypedStore.current()
-    store[to] = transform(store[from])
+    store.setValue(transform(store[from]), for: to, fileID: fileID, line: line)
   }
 
   ///  Maps the value of the implicit argument to the value of another implicit argument
@@ -198,9 +214,11 @@ extension Implicit {
   public static func map<From, To>(
     _ from: From.Type,
     to: To.Type,
-    _ transform: (Key.Value) -> To
+    _ transform: (Key.Value) -> To,
+    fileID: StaticString = #fileID,
+    line: UInt = #line
   ) where Key == TypeImplicitKey<From> {
     let store = TypedStore.current()
-    store[to] = transform(store[from])
+    store.setValue(transform(store[from]), for: to, fileID: fileID, line: line)
   }
 }
