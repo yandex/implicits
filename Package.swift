@@ -131,5 +131,14 @@ let package = Package(
       dependencies: ["Implicits"],
       plugins: ["ImplicitsAnalysisPlugin"],
     ),
+    .testTarget(
+      name: "IntegrationTests",
+      dependencies: ["Implicits"],
+      swiftSettings: [
+        .enableExperimentalFeature("AccessLevelOnImport"),
+        .treatAllWarnings(as: .error),
+      ],
+      plugins: ["ImplicitsAnalysisPlugin"]
+    ),
   ]
 )

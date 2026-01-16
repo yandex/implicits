@@ -83,6 +83,7 @@ private let codeBlockVisitorFactory: @Sendable (CompilationConditionsConfig)
       visitDoStmt: visitSyntax { CodeBlockStatement.stmt(.do($0)) },
       visitClosureExpr: visitSyntax { CodeBlockStatement.expr(.closure($0)) },
       visitFunctionCallExpr: visitSyntax { CodeBlockStatement.expr(.functionCall($0)) },
+      visitMacroExpansionExpr: visitSyntax { CodeBlockStatement.expr(.macroExpansion($0)) },
       visitTryExpr: visitSyntax { CodeBlockStatement.expr($0) },
       visitAwaitExpr: visitSyntax { CodeBlockStatement.expr($0) },
       visitVariableDecl: visitSyntax(CodeBlockStatement.decl),
@@ -434,7 +435,15 @@ extension ExprSyntax: SyntaxDescriptionProvider {
     case let .closureExpr(e):
       .closure(e.syntaxDescription(context: context))
     case let .macroExpansionExpr(e):
-      .macroExpansion(e.macroName.text)
+      .macroExpansion(.init(
+        name: e.macroName.text,
+        trailingClosure: e.trailingClosure.map {
+          .init(
+            value: $0.syntaxDescription(context: context),
+            syntax: Syntax($0)
+          )
+        }
+      ))
     case let .declReferenceExpr(e):
       .declRef(
         e.baseName.text,
@@ -476,6 +485,22 @@ extension TryExprSyntax: SyntaxDescriptionProvider {
 extension AwaitExprSyntax: SyntaxDescriptionProvider {
   fileprivate func syntaxDescription(context: Context) -> SXT.Expression {
     .await(expression.syntaxDescription(context: context))
+  }
+}
+
+// MARK: Macro Expansion
+
+extension MacroExpansionExprSyntax: SyntaxDescriptionProvider {
+  fileprivate func syntaxDescription(context: Context) -> SXT.MacroExpansion {
+    .init(
+      name: macroName.text,
+      trailingClosure: trailingClosure.map {
+        .init(
+          value: $0.syntaxDescription(context: context),
+          syntax: Syntax($0)
+        )
+      }
+    )
   }
 }
 

@@ -59,6 +59,10 @@ struct StaticAnalysisTests {
     verify(file: "with_named_implicits.swift")
   }
 
+  @Test func withImplicitsMacro() {
+    verify(file: "with_implicits_macro.swift")
+  }
+
   @Test func generatedInit() {
     verify(file: "generated_init.swift")
   }

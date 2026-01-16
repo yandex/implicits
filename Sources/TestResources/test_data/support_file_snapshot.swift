@@ -28,7 +28,7 @@ internal func __implicit_bag_support_file_swift_28_22() -> Implicits {
   Implicits(unsafeKeys: Implicits.getRawKey((UInt16).self), Implicits.getRawKey((UInt8).self))
 }
 
-internal func __implicit_bag_support_file_swift_80_19() -> Implicits {
+internal func __implicit_bag_support_file_swift_91_19() -> Implicits {
   Implicits()
 }
 
@@ -88,6 +88,28 @@ internal func withThrowingImplicits<T>(_ body: @escaping (ImplicitScope) throws 
 }
 
 internal func withAsyncThrowingImplicits<T>(_ body: @escaping (ImplicitScope) async throws -> T) -> () async throws -> T {
+  let implicits = Implicits(unsafeKeys: Implicits.getRawKey((UInt16).self), Implicits.getRawKey((UInt8).self))
+  return {
+    let scope = ImplicitScope(with: implicits)
+    defer {
+      scope.end()
+    }
+    return try await body(scope)
+  }
+}
+
+internal func __implicit_wrap_support_file_swift_67_7<T>(_ body: @escaping (ImplicitScope) -> T) -> () -> T {
+  let implicits = Implicits(unsafeKeys: Implicits.getRawKey((UInt16).self), Implicits.getRawKey((UInt8).self))
+  return {
+    let scope = ImplicitScope(with: implicits)
+    defer {
+      scope.end()
+    }
+    return body(scope)
+  }
+}
+
+internal func __implicit_wrap_support_file_swift_72_7<T>(_ body: @escaping (ImplicitScope) async throws -> T) -> () async throws -> T {
   let implicits = Implicits(unsafeKeys: Implicits.getRawKey((UInt16).self), Implicits.getRawKey((UInt8).self))
   return {
     let scope = ImplicitScope(with: implicits)

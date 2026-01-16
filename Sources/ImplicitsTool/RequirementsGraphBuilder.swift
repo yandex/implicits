@@ -778,7 +778,7 @@ extension DiagnosticMessage {
 
   // Named Implicits Wrappers
   fileprivate static func duplicateWrapperName(_ name: String) -> Self {
-    "Implicit closure wrappers must have unique names, 'with\(name)Implicits' is already defined"
+    "Implicit closure wrappers must have unique names, '\(name)' is already defined"
   }
 
   fileprivate static let previousWrapperUsage: Self = "Previous wrapper here"

@@ -62,6 +62,17 @@ private func withImplicits(_: ImplicitScope) {
     try await asyncThrowingFunc()
     requires(scope)
   }
+
+  // #withImplicits macro
+  _ = #withImplicits { scope in
+    requires(scope)
+  }
+
+  // #withImplicits macro - async throws
+  _ = #withImplicits { scope async throws in
+    try await asyncThrowingFunc()
+    requires(scope)
+  }
 }
 
 @_spi(Implicits)

@@ -152,12 +152,17 @@ public enum SyntaxTree<Syntax> {
   public enum Expression {
     case functionCall(FunctionCall)
     case closure(ClosureExpr)
-    case macroExpansion(String)
+    case macroExpansion(MacroExpansion)
     case declRef(String, parameters: [String]?)
     indirect case memberAccessor(base: Expression, String)
     case other([CodeBlockEntity])
     indirect case `await`(Expression)
     indirect case `try`(Expression, questionOrExclamation: Bool)
+  }
+
+  public struct MacroExpansion {
+    public var name: String
+    public var trailingClosure: Entity<ClosureExpr>?
   }
 
   /// Represents initializer declaration
@@ -750,7 +755,7 @@ extension SyntaxTree.Expression {
     case let .closure(v):
       .closure(v.mapSyntax(t))
     case let .macroExpansion(v):
-      .macroExpansion(v)
+      .macroExpansion(v.mapSyntax(t))
     case let .declRef(v, parameters: ps):
       .declRef(v, parameters: ps)
     case let .memberAccessor(base, v):
@@ -762,6 +767,15 @@ extension SyntaxTree.Expression {
     case let .try(expr, questionOrExclamation):
       .try(expr.mapSyntax(t), questionOrExclamation: questionOrExclamation)
     }
+  }
+}
+
+extension SyntaxTree.MacroExpansion {
+  func mapSyntax<S>(_ t: (Syntax) -> S) -> SyntaxTree<S>.MacroExpansion {
+    .init(
+      name: name,
+      trailingClosure: trailingClosure?.map(t, ST.ClosureExpr.mapSyntax)
+    )
   }
 }
 

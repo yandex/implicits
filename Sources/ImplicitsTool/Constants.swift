@@ -38,4 +38,9 @@ enum ImplicitKeyword {
     static let prefix = "with"
     static let suffix = "Implicits"
   }
+
+  enum Macro {
+    static let withImplicits = "withImplicits"
+    static let implicits = "implicits"
+  }
 }

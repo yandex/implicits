@@ -666,7 +666,7 @@ enum SemaTreeBuilder<
     if let initializer = binding.initializer {
       nestedNodes += visit(
         varInitializer: initializer.value,
-        syntax: syntax,
+        syntax: initializer.syntax,
         isConstant: isConstant,
         context: &context
       )
@@ -735,8 +735,10 @@ enum SemaTreeBuilder<
         ),
         at: syntax
       )
-    case .declRef, .macroExpansion:
+    case .declRef:
       break
+    case let .macroExpansion(macro):
+      nodes += visit(macroExpansion: macro, syntax: syntax, context: &context)
     case let .memberAccessor(base: base, _):
       nodes += visit(
         varInitializer: base,
@@ -970,7 +972,9 @@ enum SemaTreeBuilder<
         ),
         at: syntax
       )
-    case .macroExpansion, .declRef, .memberAccessor:
+    case let .macroExpansion(macro):
+      visit(macroExpansion: macro, syntax: syntax, context: &context)
+    case .declRef, .memberAccessor:
       []
     case let .other(codeBlockEntities):
       visit(
@@ -1012,6 +1016,53 @@ enum SemaTreeBuilder<
     case let .regularFunction(argsAndCalled: items):
       return items
     }
+  }
+
+  // MARK: - Macro Expansion Handling
+
+  private static func visit(
+    macroExpansion macro: SXT.MacroExpansion,
+    syntax: Syntax,
+    context: inout Context
+  ) -> [CodeBlockItem] {
+    guard macro.name == ImplicitKeyword.Macro.withImplicits,
+          let trailingClosure = macro.trailingClosure else {
+      return []
+    }
+
+    let closure = trailingClosure.value
+    guard let params = closure.parameters, !params.isEmpty else {
+      context.diagnose(.withImplicitsRequiresClosureWithScope, at: syntax)
+      return []
+    }
+
+    guard let lastParam = params.last, lastParam.isImplicitScope else {
+      context.diagnose(.withImplicitsLastParamMustBeScope, at: syntax)
+      return []
+    }
+
+    let wrapperName = SyntaxInfo.location(of: syntax).implicitWrapFuncName()
+
+    // closureParamCount is all params except the scope
+    let closureParamCount = params.count - 1
+
+    let effects = ClosureEffects(isAsync: closure.isAsync, isThrowing: closure.isThrowing)
+    let body = visit(
+      codeBlockEntities: closure.body,
+      context: &context[withScope: closure, scopeParamter: lastParam.name.syntax]
+    )
+
+    return [
+      CodeBlockItem(
+        syntax: syntax,
+        node: .withNamedImplicits(
+          wrapperName: wrapperName,
+          closureParamCount: closureParamCount,
+          effects: effects,
+          body: body
+        )
+      )
+    ]
   }
 
   private static func visitMemberVariableDecl(
@@ -1172,16 +1223,9 @@ enum SemaTreeBuilder<
     case let .functionCall(function):
       guard let bag = function.isImplicitBagInitializer() else { return nil }
       return SMT.ImplicitBag(syntax: expr.syntax, node: bag)
-    case let .macroExpansion(name):
-      guard name == "implicits" else { return nil }
-      let loc = SyntaxInfo.location(of: expr.syntax)
-      let filename =
-        loc.file.split(separator: "/").last.map(String.init) ?? ""
-      let funcName = generateImplicitBagFuncName(
-        filename: filename,
-        line: loc.line.description,
-        column: loc.column.description
-      )
+    case let .macroExpansion(macro):
+      guard macro.name == ImplicitKeyword.Macro.implicits else { return nil }
+      let funcName = SyntaxInfo.location(of: expr.syntax).implicitBagFuncName()
       return SMT.ImplicitBag(
         syntax: expr.syntax,
         node: Sema.ImplicitBagDescription(
@@ -1453,11 +1497,6 @@ extension SyntaxTree.FunctionCall {
       return nil
     }
 
-    let prefixLen = ImplicitKeyword.ClosureWrapper.prefix.count
-    let suffixLen = ImplicitKeyword.ClosureWrapper.suffix.count
-    guard funcName.count > prefixLen + suffixLen else { return nil }
-    let wrapperName = String(funcName.dropFirst(prefixLen).dropLast(suffixLen))
-
     guard arguments.isEmpty else { return nil }
     guard let trailingClosure else { return nil }
     let closure = trailingClosure.value
@@ -1465,7 +1504,7 @@ extension SyntaxTree.FunctionCall {
     guard let lastParam = params.last, lastParam.isImplicitScope else { return nil }
 
     return (
-      wrapperName: wrapperName,
+      wrapperName: funcName,
       closureParamCount: params.count - 1,
       closure: closure,
       scopeArg: lastParam.name.syntax
@@ -1475,7 +1514,7 @@ extension SyntaxTree.FunctionCall {
 
 extension SyntaxTree.ClosureParameter {
   var isImplicitScope: Bool {
-    name.value.literal == ImplicitKeyword.Scope.variableName
+    name.value.isWildcard || name.value.literal == ImplicitKeyword.Scope.variableName
   }
 }
 
@@ -1512,6 +1551,21 @@ extension ImplicitKey {
     }
   }
 }
+
+extension Diagnostic.Location {
+  fileprivate var fileName: String {
+    file.split(separator: "/").last.map(String.init) ?? ""
+  }
+
+  func implicitBagFuncName() -> String {
+    generateImplicitBagFuncName(filename: fileName, line: "\(line)", column: "\(column)")
+  }
+
+  func implicitWrapFuncName() -> String {
+    generateImplicitWrapFuncName(filename: fileName, line: "\(line)", column: "\(column)")
+  }
+}
+
 
 // TODO: To base
 extension String {
@@ -1659,4 +1713,10 @@ extension DiagnosticMessage {
     "[TBD] Implicit.map requires keypath expression or explicit type"
   fileprivate static let implicitMap_unexpectedArgument: Self =
     "[TBD] Unexpected argument"
+
+  // #withImplicits macro
+  fileprivate static let withImplicitsRequiresClosureWithScope: Self =
+    "#withImplicits requires a closure with at least a scope parameter"
+  fileprivate static let withImplicitsLastParamMustBeScope: Self =
+    "#withImplicits closure's last parameter must be of type ImplicitScope"
 }

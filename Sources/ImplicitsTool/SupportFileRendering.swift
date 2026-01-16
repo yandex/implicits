@@ -176,10 +176,7 @@ extension SupportFile {
         returnClause: ReturnClauseSyntax(type: returnType)
       )
 
-      let funcName =
-        ImplicitKeyword.ClosureWrapper.prefix +
-        wrapper.wrapperName +
-        ImplicitKeyword.ClosureWrapper.suffix
+      let funcName = wrapper.wrapperName
       let argNames = (0..<wrapper.closureParamCount).map { "arg\($0 + 1)" }
 
       let body = CodeBlockSyntax {
