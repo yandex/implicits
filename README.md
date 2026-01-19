@@ -186,23 +186,21 @@ class SearchComponent {
 
 #### Working with Closures
 
-Closures require special handling to capture implicit context:
+Closures that need implicit dependencies use the `#withImplicits` macro:
 
 ```swift
 class FeedComponent {
   init(_ scope: ImplicitScope) {
-    // Using the #implicits macro (recommended)
-    self.postFactory = {
-      [implicits = #implicits] in
-      let scope = ImplicitScope(with: implicits)
-      defer { scope.end() }
+    self.postFactory = #withImplicits { scope in
       return Post(scope)
     }
   }
 }
 ```
 
-The `#implicits` macro captures the necessary implicit arguments. The analyzer detects which implicits are needed and generates the appropriate capture list.
+The macro captures implicits at definition time and restores them when called.
+
+For more options including macro-free approaches, see the [Closures Guide](docs/closures.md).
 
 #### Factory Pattern
 
