@@ -118,6 +118,10 @@ struct StaticAnalysisTests {
   @Test func ifConfigCodeBlock() {
     verify(file: "if_config_code_block.swift", compilationConditions: ["A", "B", "C"])
   }
+
+  @Test func objcGenericTypes() {
+    verify(file: "objc_generic_types.swift")
+  }
 }
 
 private let anotherModule = (modulename: "AnotherModule", files: ["another_module.swift"])

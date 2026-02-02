@@ -930,6 +930,30 @@ extension SyntaxTree.TypeModel {
   }
 }
 
+private let knownObjcGenericTypes: Set<String> = [
+  "NSArray", "NSMutableArray",
+  "NSDictionary", "NSMutableDictionary",
+  "NSSet", "NSMutableSet",
+  "NSOrderedSet", "NSMutableOrderedSet",
+  "NSEnumerator",
+  "NSCache",
+  "NSMapTable", "NSHashTable", "NSPointerArray",
+]
+
+extension SyntaxTree.TypeModel {
+  /// ObjC lightweight generics are type-erased at runtime.
+  var objcGenericBaseType: String? {
+    guard case let .generic(base, args) = self,
+          !args.isEmpty,
+          case let .identifier(name) = base,
+          knownObjcGenericTypes.contains(name) || name.hasPrefix("NS")
+    else {
+      return nil
+    }
+    return name
+  }
+}
+
 extension SyntaxTree.Attribute {
   func mapSyntax<S>(_ t: (Syntax) -> S) -> SyntaxTree<S>.Attribute {
     .init(

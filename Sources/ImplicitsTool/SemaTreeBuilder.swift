@@ -1542,6 +1542,10 @@ extension ImplicitKey {
     errors: inout Diagnostics<S>,
     syntax: S
   ) {
+    if let objcType = type.objcGenericBaseType {
+      errors.diagnose(.objcGenericTypeKey(objcType), at: syntax)
+    }
+
     self.init(
       kind: .type,
       name: type.strictDescription(errors: &errors, syntax: syntax)

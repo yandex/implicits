@@ -386,6 +386,29 @@ var networkService = NetworkService()
 var networkService = services.network
 ```
 
+**4. Objective-C Lightweight Generics**
+- Objective-C generic types (`NSArray<T>`, `NSDictionary<K,V>`, etc.) cannot be used as type-based implicit keys
+- Generic parameters are erased at runtime: `ObjectIdentifier(NSArray<NSString>.self) == ObjectIdentifier(NSArray<NSNumber>.self)`
+- Use named keys (keypaths) instead:
+
+```swift
+// Won't work - type-erased at runtime
+@Implicit
+var strings: NSArray<NSString>
+
+// Use named keys instead
+extension ImplicitsKeys {
+  var stringArray: NSArray<NSString> { get { fatalError() } }
+  var numberArray: NSArray<NSNumber> { get { fatalError() } }
+}
+
+@Implicit(\.stringArray)
+var strings: NSArray<NSString>
+
+@Implicit(\.numberArray)
+var numbers: NSArray<NSNumber>
+```
+
 ## Runtime Debugging
 
 In DEBUG builds, Implicits provides powerful debugging tools to inspect your implicit context at runtime.

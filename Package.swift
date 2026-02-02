@@ -113,7 +113,7 @@ let package = Package(
       name: "__TestResourcesCompilation",
       dependencies: ["Implicits", "AnotherModule"],
       path: "Sources/TestResources/test_data",
-      exclude: ["another_module.swift"]
+      exclude: ["another_module.swift", "objc_generic_types.swift"]
     ),
     .target(
       name: "AnotherModule",

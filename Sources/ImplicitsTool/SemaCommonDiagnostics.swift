@@ -12,4 +12,9 @@ extension DiagnosticMessage {
   }
 
   static let foundCandidate: Self = "Found this candidate"
+
+  // Objective-C generic types
+  static func objcGenericTypeKey(_ typeName: String) -> Self {
+    "'\(typeName)' is an Objective-C type with type-erased generics; use a named key (keypath) instead of type-as-key"
+  }
 }
