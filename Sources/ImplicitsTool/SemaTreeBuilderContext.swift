@@ -329,6 +329,18 @@ extension SemaTreeBuilder.Context {
       .isImplicitScope ?? false
   }
 
+  /// Returns `true` when the function call executes its trailing closure
+  /// immediately and the closure should inherit the current implicit scope
+  /// (e.g. `MainActor.assumeIsolated { ... }`).
+  func isImmediateClosureCall(_ call: SXT.FunctionCall) -> Bool {
+    guard call.trailingClosure != nil,
+          let base = call.base,
+          let funcName = call.name?.value.description else {
+      return false
+    }
+    return base.description == "MainActor" && funcName == "assumeIsolated"
+  }
+
   // MARK: - parsing time registration
 
   mutating func registerDeclaration(_ item: SXT.Declaration) {

@@ -854,6 +854,27 @@ enum SemaTreeBuilder<
       ])
     }
 
+    // Immediate closures: MainActor.assumeIsolated { ... }
+    // The trailing closure body inherits the current implicit scope
+    if let closure = functionCall.trailingClosure?.value,
+       context.isImmediateClosureCall(functionCall) {
+      let bodyNodes = visit(
+        codeBlockEntities: closure.body,
+        context: &context
+      )
+      let nested = nestedExpressions(
+        in: functionCall.arguments,
+        context: &context
+      ) + visit(
+        codeBlockEntities: functionCall.baseExprs,
+        context: &context
+      )
+      return .regularFunction(argsAndCalled: nested + .item(
+        .innerScope(bodyNodes),
+        at: functionCall.trailingClosure!.syntax
+      ))
+    }
+
     // ImplicitScope()
     if functionCall.isImplicitScopeInitializer {
       let hasBag = analyzeImplicitScopeArgs(
@@ -1518,6 +1539,7 @@ extension SyntaxTree.FunctionCall {
       scopeArg: lastParam.name.syntax
     )
   }
+
 }
 
 extension SyntaxTree.ClosureParameter {

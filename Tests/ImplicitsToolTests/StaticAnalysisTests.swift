@@ -118,6 +118,10 @@ struct StaticAnalysisTests {
   @Test func ifConfigCodeBlock() {
     verify(file: "if_config_code_block.swift", compilationConditions: ["A", "B", "C"])
   }
+
+  @Test func immediateClosure() {
+    verify(file: "immediate_closure.swift")
+  }
 }
 
 private let anotherModule = (modulename: "AnotherModule", files: ["another_module.swift"])
