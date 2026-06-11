@@ -2,12 +2,13 @@
 import Implicits
 
 private func entry() {
-  // expected-error@+1 {{Unresolved requirements: UInt16, UInt32, UInt8}}
+  // expected-error@+1 {{Unresolved requirements: Int8, UInt16, UInt32, UInt64, UInt8}}
   let scope = ImplicitScope()
   defer { scope.end() }
 
   _ = StoresImplicitsBag(scope)
   _ = ImplicitBagMacro(scope)
+  _ = BagWithImplicitProperty(scope)
 }
 
 private struct StoresImplicitsBag {
@@ -96,7 +97,7 @@ private struct ImplicitBagMacro {
   }
 }
 
-private func __implicit_bag_stored_implicit_bag_swift_86_19() -> Implicits {
+private func __implicit_bag_stored_implicit_bag_swift_87_19() -> Implicits {
   return Implicits()
 }
 
@@ -109,5 +110,26 @@ private func testBag2Implicits() -> Implicits {
 }
 
 private func testBag3Implicits() -> Implicits {
+  return Implicits()
+}
+
+private struct BagWithImplicitProperty {
+  @Implicit()
+  var dep: Int8
+
+  let implicits = testBag4Implicits()
+
+  init(_: ImplicitScope) {}
+
+  func usesBag() {
+    let scope = ImplicitScope(with: implicits)
+    defer { scope.end() }
+
+    @Implicit()
+    var v1: UInt64
+  }
+}
+
+private func testBag4Implicits() -> Implicits {
   return Implicits()
 }

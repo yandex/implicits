@@ -228,7 +228,7 @@ extension UnresolvedGraph {
       storedBags[namespace] = bagNode
       bags.append((bag, bagNode, file))
       if var initializer = implicitStoredProperties[namespace] {
-        graph.addEdge(from: bagNode, to: initializer.tail)
+        graph.addEdge(from: initializer.tail, to: bagNode)
         initializer.tail = bagNode
         implicitStoredProperties[namespace] = initializer
       } else {
