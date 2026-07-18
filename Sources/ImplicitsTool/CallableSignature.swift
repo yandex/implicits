@@ -16,12 +16,16 @@ public enum FunctionKind: Equatable, Hashable, Sendable {
   case callAsFunction
 
   public var isInitializer: Bool {
-    if case .initializer = self { return true }
+    if case .initializer = self {
+      return true
+    }
     return false
   }
 
   public var isStatic: Bool {
-    if case .staticFunction = self { return true }
+    if case .staticFunction = self {
+      return true
+    }
     return false
   }
 }
@@ -37,7 +41,9 @@ public struct TypeInfo: Hashable, Sendable {
     case failure(diagnostics: [DiagnosticMessage])
 
     public var value: T? {
-      if case let .success(value) = self { return value }
+      if case let .success(value) = self {
+        return value
+      }
       return nil
     }
   }

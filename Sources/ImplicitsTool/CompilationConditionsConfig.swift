@@ -35,7 +35,9 @@ extension GeneralVisitor {
             hasNonTrivial = true
           case true?:
             toVisit.append(clause)
-            if !hasNonTrivial { return .visit(toVisit.flatMap(\.bodyElements)) }
+            if !hasNonTrivial {
+              return .visit(toVisit.flatMap(\.bodyElements))
+            }
             break loop
           }
         }
@@ -78,12 +80,20 @@ public func evaluateCondition(
 
     switch opDescr {
     case "&&":
-      if lhs == false || rhs == false { return false }
-      if lhs == true, rhs == true { return true }
+      if lhs == false || rhs == false {
+        return false
+      }
+      if lhs == true, rhs == true {
+        return true
+      }
       return nil
     case "||":
-      if lhs == true || rhs == true { return true }
-      if lhs == false, rhs == false { return false }
+      if lhs == true || rhs == true {
+        return true
+      }
+      if lhs == false, rhs == false {
+        return false
+      }
       return nil
     default:
       return nil

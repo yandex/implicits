@@ -71,7 +71,9 @@ extension SemaTreeBuilder {
         let enclosingType: SXT.TypeDecl? =
           if case let .declaration(.type(t)) = topLevel.value {
             t
-          } else { nil }
+          } else {
+            nil
+          }
         return Context(
           modulename: modulename, enableExporting: enableExporting, file: file,
           symbols: symbols,
@@ -792,14 +794,18 @@ extension SyntaxTree.FunctionDecl {
 
 extension SemaTreeBuilder.Context.VariableInfoForTypeInference {
   var isImplicitScope: Bool {
-    if isKnownImplicitScope { return true }
+    if isKnownImplicitScope {
+      return true
+    }
     if let writtenType {
       return writtenType.description == ImplicitKeyword.Scope.className
     }
     if let initializer {
       switch initializer {
       case let .functionCall(fcall):
-        if fcall.isImplicitScopeInitializer { return true }
+        if fcall.isImplicitScopeInitializer {
+          return true
+        }
         switch fcall.isImplicitScopeCall() {
         case .nested:
           return true

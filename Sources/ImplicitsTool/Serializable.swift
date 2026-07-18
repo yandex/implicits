@@ -33,7 +33,9 @@ extension Array: Serializable where Element: Serializable {
       }
       initialized = count
     }
-    if let err { throw err }
+    if let err {
+      throw err
+    }
   }
 
   public func serialize(to s: inout some OutputByteStream) throws(SerializationError) {
@@ -67,7 +69,9 @@ extension String: Serializable {
       }
       return count
     }
-    if let err { throw err }
+    if let err {
+      throw err
+    }
   }
 
   public func serialize(to s: inout some OutputByteStream) throws(SerializationError) {
@@ -81,7 +85,9 @@ extension String: Serializable {
         err = error
       }
     }
-    if let err { throw err }
+    if let err {
+      throw err
+    }
   }
 }
 
@@ -115,7 +121,9 @@ extension ExplicitWidthInteger {
       }
     }
     self.init(littleEndian: le)
-    if let err { throw err }
+    if let err {
+      throw err
+    }
   }
 
   public func serialize(
@@ -129,7 +137,9 @@ extension ExplicitWidthInteger {
         err = error
       }
     }
-    if let err { throw err }
+    if let err {
+      throw err
+    }
   }
 }
 

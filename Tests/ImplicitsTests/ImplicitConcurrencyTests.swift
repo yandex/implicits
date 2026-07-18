@@ -207,7 +207,9 @@ actor Checkpoint<Step: Hashable> {
   }
 
   func wait(_ step: Step) async {
-    if opened.contains(step) { return }
+    if opened.contains(step) {
+      return
+    }
     await withCheckedContinuation { cont in
       waiters[step, default: []].append(cont)
     }

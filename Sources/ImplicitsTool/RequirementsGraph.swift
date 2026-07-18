@@ -134,7 +134,9 @@ extension RequirementsGraph {
     var stack: [IndexingIterator<[Graph.Index]>] = []
     visited.insert(start)
     path.append(start)
-    if graph[start].requires.contains(key) { return path }
+    if graph[start].requires.contains(key) {
+      return path
+    }
     stack.append(sortedSuccessors(of: start).makeIterator())
     while !stack.isEmpty {
       guard let successor = stack[stack.count - 1].next() else {
@@ -145,7 +147,9 @@ extension RequirementsGraph {
       guard visited.insert(successor).inserted,
             cache[successor]?.contains(key) == true else { continue }
       path.append(successor)
-      if graph[successor].requires.contains(key) { return path }
+      if graph[successor].requires.contains(key) {
+        return path
+      }
       stack.append(sortedSuccessors(of: successor).makeIterator())
     }
     return []

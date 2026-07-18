@@ -1569,7 +1569,9 @@ extension SyntaxTree.MacroExpansion {
 
 extension SyntaxTree.TypeModel {
   fileprivate var isMainActor: Bool {
-    if case let .identifier(name) = self { return name == "MainActor" }
+    if case let .identifier(name) = self {
+      return name == "MainActor"
+    }
     return false
   }
 }
