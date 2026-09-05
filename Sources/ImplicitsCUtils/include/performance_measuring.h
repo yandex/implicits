@@ -18,7 +18,7 @@
   SUBJECT(RawStoreCurrent)             \
   SUBJECT(RawStoreFromTSD)             \
   SUBJECT(TypedStoreSubscriptGet)      \
-  SUBJECT(TypedStoreSubscriptSet)
+  SUBJECT(TypedStoreSetValue)
 
 /*
  Declare functions to record and read measurements for each subject.
