@@ -14,7 +14,7 @@ public enum MeasurementSubject: CaseIterable {
   case rawStoreOnRootScopeCreation
   case rawStoreOnRootScopeEnd
   case typedStoreSubscriptGet
-  case typedStoreSubscriptSet
+  case typedStoreSetValue
 }
 
 public struct ImplicitPerformanceMeasurement {
@@ -97,8 +97,8 @@ extension InternalImplicitsMeasurementSubject {
       self = .rawStoreOnRootScopeEnd
     case .typedStoreSubscriptGet:
       self = .typedStoreSubscriptGet
-    case .typedStoreSubscriptSet:
-      self = .typedStoreSubscriptSet
+    case .typedStoreSetValue:
+      self = .typedStoreSetValue
     }
   }
 }
@@ -120,8 +120,8 @@ extension MeasurementSubject {
       "rawStoreSubscriptSet"
     case .typedStoreSubscriptGet:
       "typedStoreSubscriptGet"
-    case .typedStoreSubscriptSet:
-      "typedStoreSubscriptSet"
+    case .typedStoreSetValue:
+      "typedStoreSetValue"
     case .rawStoreOnRootScopeCreation:
       "rawStoreOnRootScopeCreation"
     case .rawStoreOnRootScopeEnd:

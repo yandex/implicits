@@ -36,19 +36,15 @@ internal struct TypedStore {
   ///   and it must be of the correct type.
   @inlinable
   internal subscript<Key: ImplicitKeyType>(_: Key.Type) -> Key.Value {
-    get {
-      measure(.typedStoreSubscriptGet) {
-        guard let entry = raw[Key.id] else {
-          Key.noValueFatalError()
-        }
-        return unsafeDowncast(entry, to: EntryConcrete<Key.Value>.self).value
+    measure(.typedStoreSubscriptGet) {
+      guard let entry = raw[Key.id] else {
+        Key.noValueFatalError()
       }
-    }
-
-    nonmutating set {
-      measure(.typedStoreSubscriptSet) {
-        raw[Key.id] = EntryConcrete(value: newValue) as EntryAbstract
-      }
+      #if DEBUG
+      return unsafeDowncast(entry, to: EntryConcrete<Key.Value>.self).storage.value
+      #else
+      return unsafeDowncast(entry, to: EntryConcrete<Key.Value>.self).value
+      #endif
     }
   }
 
@@ -58,8 +54,7 @@ internal struct TypedStore {
   /// - Precondition: The store must contain a value for the given key
   @inlinable
   internal subscript<Key: ImplicitKeyType>(_: KeySpecifier<Key>) -> Key.Value {
-    get { self[Key.self] }
-    nonmutating set { self[Key.self] = newValue }
+    self[Key.self]
   }
 
   /// Returns a value for the given key.
@@ -68,9 +63,71 @@ internal struct TypedStore {
   /// - Precondition: The store must contain a value for the given key type
   @inlinable
   internal subscript<Key>(_: Key.Type) -> Key {
-    get { self[TypeImplicitKey<Key>.self] }
-    nonmutating set { self[TypeImplicitKey<Key>.self] = newValue }
+    self[TypeImplicitKey<Key>.self]
   }
+
+  #if DEBUG
+  @inlinable
+  internal func setValue<Key: ImplicitKeyType>(
+    _ value: Key.Value,
+    for _: Key.Type,
+    fileID: StaticString,
+    line: UInt
+  ) {
+    measure(.typedStoreSetValue) {
+      let location = SourceLocation(fileID: fileID, line: line)
+      raw[Key.id] = EntryConcrete(
+        storage: .init(value: value, sourceLocation: location)
+      ) as EntryAbstract
+    }
+  }
+
+  @inlinable
+  internal func setValue<Key: ImplicitKeyType>(
+    _ value: Key.Value,
+    for _: KeySpecifier<Key>,
+    fileID: StaticString,
+    line: UInt
+  ) {
+    setValue(value, for: Key.self, fileID: fileID, line: line)
+  }
+
+  @inlinable
+  internal func setValue<T>(
+    _ value: T,
+    for _: T.Type,
+    fileID: StaticString,
+    line: UInt
+  ) {
+    setValue(value, for: TypeImplicitKey<T>.self, fileID: fileID, line: line)
+  }
+  #else
+  @inlinable
+  internal func setValue<Key: ImplicitKeyType>(
+    _ value: Key.Value,
+    for _: Key.Type
+  ) {
+    measure(.typedStoreSetValue) {
+      raw[Key.id] = EntryConcrete(value: value) as EntryAbstract
+    }
+  }
+
+  @inlinable
+  internal func setValue<Key: ImplicitKeyType>(
+    _ value: Key.Value,
+    for _: KeySpecifier<Key>
+  ) {
+    setValue(value, for: Key.self)
+  }
+
+  @inlinable
+  internal func setValue<T>(
+    _ value: T,
+    for _: T.Type
+  ) {
+    setValue(value, for: TypeImplicitKey<T>.self)
+  }
+  #endif
 }
 
 /// `StoreValue` is a wrapper over `TypedStore` with a defined key.
@@ -84,12 +141,7 @@ internal struct StoreValue<Key: ImplicitKeyType> {
 
   @inlinable
   internal var value: Value {
-    get {
-      store[Key.self]
-    }
-    nonmutating set {
-      store[Key.self] = newValue
-    }
+    store[Key.self]
   }
 
   @inlinable
@@ -101,6 +153,24 @@ internal struct StoreValue<Key: ImplicitKeyType> {
   internal static func current() -> Self {
     .init(store: .current())
   }
+
+  #if DEBUG
+  @inlinable
+  internal func setValue(
+    _ newValue: Value,
+    fileID: StaticString,
+    line: UInt
+  ) {
+    store.setValue(newValue, for: Key.self, fileID: fileID, line: line)
+  }
+  #else
+  @inlinable
+  internal func setValue(
+    _ newValue: Value
+  ) {
+    store.setValue(newValue, for: Key.self)
+  }
+  #endif
 }
 
 /// A type-erased wrapper over an implicit value.
@@ -108,6 +178,40 @@ internal struct StoreValue<Key: ImplicitKeyType> {
 /// Allows storing the value in `RawStore` and efficiently downcasting back to its original type.
 @usableFromInline
 final class EntryConcrete<T>: EntryAbstract {
+  #if DEBUG
+  @usableFromInline
+  struct StoredDebugValue {
+    @usableFromInline
+    let value: T
+
+    @usableFromInline
+    let sourceLocation: SourceLocation
+
+    @usableFromInline
+    init(value: T, sourceLocation: SourceLocation) {
+      self.value = value
+      self.sourceLocation = sourceLocation
+    }
+  }
+
+  @usableFromInline
+  var storage: StoredDebugValue
+
+  @inlinable
+  init(storage: StoredDebugValue) {
+    self.storage = storage
+    super.init()
+  }
+
+  @inlinable
+  deinit {}
+
+  @inlinable
+  override var anyValue: any Any { storage.value }
+
+  @inlinable
+  override var sourceLocation: SourceLocation { storage.sourceLocation }
+  #else
   @usableFromInline
   var value: T
 
@@ -118,10 +222,6 @@ final class EntryConcrete<T>: EntryAbstract {
 
   @inlinable
   deinit {}
-
-  #if DEBUG
-  @inlinable
-  override var anyValue: any Any { value }
   #endif
 }
 
