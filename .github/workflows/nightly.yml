@@ -1,0 +1,54 @@
+name: Nightly
+on:
+  schedule:
+    - cron: "0 3 * * *" # Every night at 3:00 AM UTC
+  workflow_dispatch:
+
+jobs:
+  nightly:
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ssh-key: ${{ secrets.DEPLOY_KEY }}
+
+      - name: Update SwiftFormat
+        run: brew upgrade swiftformat || true
+
+      - name: Run SwiftFormat
+        run: |
+          swiftformat --version > .swiftformat-version
+          swiftformat .
+
+      - name: Push changes if needed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Apply SwiftFormat updates"
+            git push
+          fi
+
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Build
+        run: swift build -v --enable-experimental-prebuilts
+
+      - name: Run tests
+        run: SWIFT_DETERMINISTIC_HASHING=1 swift test -v --parallel --enable-experimental-prebuilts
+
+      - name: Build Showcase (static analysis)
+        run: swift build --target Showcase --enable-experimental-prebuilts
+
+      - name: Build ShowcaseDependency (static analysis)
+        run: swift build --target ShowcaseDependency --enable-experimental-prebuilts
+
+      - name: Test Implicits for iOS
+        run: swift test --filter ImplicitsTests --sdk $(xcrun --sdk iphonesimulator --show-sdk-path) --triple arm64-apple-ios14.0-simulator --enable-experimental-prebuilts

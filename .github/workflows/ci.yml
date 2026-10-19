@@ -8,28 +8,33 @@ on:
 
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
+    container: swift:6.2
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Xcode
-        uses: maxim-lobanov/setup-xcode@v1
-        with:
-          xcode-version: latest-stable
-
       - name: Build
-        run: swift build -v --enable-experimental-prebuilts
+        run: swift build -v
 
       - name: Run tests
-        run: SWIFT_DETERMINISTIC_HASHING=1 swift test -v --parallel --enable-experimental-prebuilts
+        run: SWIFT_DETERMINISTIC_HASHING=1 swift test -v --parallel
 
       - name: Build Showcase (static analysis)
-        run: swift build --target Showcase --enable-experimental-prebuilts
+        run: swift build --target Showcase
 
       - name: Build ShowcaseDependency (static analysis)
-        run: swift build --target ShowcaseDependency --enable-experimental-prebuilts
+        run: swift build --target ShowcaseDependency
 
-      - name: Test Implicits for iOS
-        if: github.event_name == 'push'
-        run: swift test --filter ImplicitsTests --sdk $(xcrun --sdk iphonesimulator --show-sdk-path) --triple arm64-apple-ios14.0-simulator --enable-experimental-prebuilts
+      - name: Install SwiftFormat
+        if: success() || failure()
+        run: |
+          apt-get update -qq
+          apt-get install -y -qq --no-install-recommends curl ca-certificates
+          curl -fsSL -o /tmp/swiftformat.zip "https://github.com/nicklockwood/SwiftFormat/releases/download/$(cat .swiftformat-version)/swiftformat_linux.zip"
+          unzip -q /tmp/swiftformat.zip -d /tmp/swiftformat
+          install /tmp/swiftformat/swiftformat_linux /usr/local/bin/swiftformat
+
+      - name: SwiftFormat
+        if: success() || failure()
+        run: swiftformat --lint . --reporter github-actions-log
