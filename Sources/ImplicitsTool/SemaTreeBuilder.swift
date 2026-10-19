@@ -606,6 +606,14 @@ enum SemaTreeBuilder<
         at: excess.firstName.syntax
       )
     }
+    let scopeIsLast = params.last?.isScopeParameter == true
+    if let scopeParam = scopeParams.first, !scopeIsLast {
+      errors.diagnose(
+        .scopeMustBeLastParameter,
+        at: scopeParam.firstName.syntax,
+        severity: .warning
+      )
+    }
     for param in scopeParams {
       let firstName = param.firstName
       errors.check(
@@ -1667,11 +1675,13 @@ extension DiagnosticMessage {
     "Possible variants are: '_: \(implicitScope)' or '_ scope: \(implicitScope)'"
 
   fileprivate static let excessImplicitScopeParameter: Self =
-    "Excess '\(implicitScope)' parameter in function declaration"
+    "Excess '\(implicitScope)' parameter in declaration"
+  fileprivate static let scopeMustBeLastParameter: Self =
+    "'\(implicitScope)' must be the last parameter in declaration"
   fileprivate static let scopeArgIsNotWildcard: Self =
-    "'\(implicitScope)' argument in function declaration must be wildcard. \(possibleScopeArgVariants)"
+    "'\(implicitScope)' argument in declaration must be wildcard. \(possibleScopeArgVariants)"
   fileprivate static func wrongScopeArgName(_ got: String) -> Self {
-    "'\(implicitScope)' argument in function declaration must be wildcard or 'scope'; found: '\(got)'. \(possibleScopeArgVariants)"
+    "'\(implicitScope)' argument in declaration must be wildcard or 'scope'; found: '\(got)'. \(possibleScopeArgVariants)"
   }
 
   // MARK: Static dispatch

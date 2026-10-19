@@ -122,8 +122,8 @@ func `underscore variable name`() {
   var v1: Int
 }
 
-// expected-error@+2 {{'ImplicitScope' argument in function declaration must be wildcard. Possible variants are: '_: ImplicitScope' or '_ scope: ImplicitScope'}}
-// expected-error@+1 {{Excess 'ImplicitScope' parameter in function declaration}}
+// expected-error@+2 {{'ImplicitScope' argument in declaration must be wildcard. Possible variants are: '_: ImplicitScope' or '_ scope: ImplicitScope'}}
+// expected-error@+1 {{Excess 'ImplicitScope' parameter in declaration}}
 private func f1(scope: ImplicitScope, _: ImplicitScope) {
   let scope = scope.nested()
   defer { scope.end() }
@@ -132,11 +132,14 @@ private func f1(scope: ImplicitScope, _: ImplicitScope) {
   var i: Int = 4
 }
 
+// expected-warning@+1 {{'ImplicitScope' must be the last parameter in declaration}}
+private func `scope parameter before others`(_: ImplicitScope, _: Int) {}
+
 private struct S1 {
   // expected-error@+2 {{Stored Implicit property cannot have initial value}}
   @Implicit()
   var foo: UInt8 = 5
-  // expected-error@+1 {{'ImplicitScope' argument in function declaration must be wildcard. Possible variants are: '_: ImplicitScope' or '_ scope: ImplicitScope'}}
+  // expected-error@+1 {{'ImplicitScope' argument in declaration must be wildcard. Possible variants are: '_: ImplicitScope' or '_ scope: ImplicitScope'}}
   init(scope: ImplicitScope) {
     let scope = scope.nested()
     defer { scope.end() }
@@ -145,7 +148,7 @@ private struct S1 {
     var i: Int = 4
   }
 
-  // expected-error@+1 {{'ImplicitScope' argument in function declaration must be wildcard or 'scope'; found: 'scoop'. Possible variants are: '_: ImplicitScope' or '_ scope: ImplicitScope'}}
+  // expected-error@+1 {{'ImplicitScope' argument in declaration must be wildcard or 'scope'; found: 'scoop'. Possible variants are: '_: ImplicitScope' or '_ scope: ImplicitScope'}}
   init(i: Int, _ scoop: ImplicitScope) {}
 }
 
