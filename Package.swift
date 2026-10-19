@@ -29,6 +29,7 @@ let package = Package(
       dependencies: ["ImplicitsCUtils", "ImplicitsMacros"],
       swiftSettings: [
         .enableExperimentalFeature("AccessLevelOnImport"),
+        .enableExperimentalFeature("AllowRuntimeSymbolDeclarations"),
       ]
     ),
     .target(
