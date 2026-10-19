@@ -17,7 +17,7 @@ struct WithImplicitsMacroTests {
 
     #expect(wrapped() == 30)
 
-    verifyInNestedScope(scope, wrapped: wrapped)
+    verifyInNestedScope(wrapped: wrapped, scope)
   }
 
   @Test func `multiple invocations`() {
@@ -106,7 +106,7 @@ struct WithImplicitsMacroTests {
 @MainActor private func mainActorOnlyAsync() async -> Int { 1 }
 @MainActor private func mainActorOnlyAsyncThrowing() async throws -> Int { 1 }
 
-private func verifyInNestedScope(_ scope: ImplicitScope, wrapped: () -> Int) {
+private func verifyInNestedScope(wrapped: () -> Int, _ scope: ImplicitScope) {
   let scope = scope.nested()
   defer { scope.end() }
 
