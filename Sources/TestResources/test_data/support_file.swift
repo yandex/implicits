@@ -6,9 +6,9 @@
 @_spi(SomeSPIGroup) @testable import AnotherModule
 import Implicits
 
-internal import CoreImage
+internal import RegexBuilder
 
-private import CoreGraphics
+private import Observation
 
 extension ImplicitsKeys {
   // expected-key internal supportFileKey1: Bool
