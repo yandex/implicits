@@ -1,6 +1,10 @@
 // Copyright 2022 Yandex LLC. All rights reserved.
 
+#if canImport(Darwin)
 import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#endif
 
 @usableFromInline
 internal typealias Entry = EntryAbstract
@@ -32,8 +36,16 @@ internal final class RawStore: @unchecked Sendable {
 
   private static let key: pthread_key_t = {
     var key = pthread_key_t()
-    let code = pthread_key_create(&key) {
-      Unmanaged<RawStore>.fromOpaque($0).release()
+    let code = pthread_key_create(&key) { value in
+      // Darwin's pthread.h marks the destructor argument non-null, so Swift
+      // imports it as non-optional; glibc's header has no nullability
+      // annotations, so there it is optional.
+      #if canImport(Darwin)
+      Unmanaged<RawStore>.fromOpaque(value).release()
+      #else
+      guard let value else { return }
+      Unmanaged<RawStore>.fromOpaque(value).release()
+      #endif
     }
 
     switch code {

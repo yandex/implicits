@@ -2,11 +2,10 @@
 #if false
 #endif
 @testable @_spi(SomeSPIGroup) import AnotherModule
-private import CoreGraphics
-internal import CoreImage
 import Foundation
-
 @_spi(Unsafe) import Implicits
+private import Observation
+internal import RegexBuilder
 extension ImplicitsKeys {
   internal enum _SupportFileKey1Tag {
   }

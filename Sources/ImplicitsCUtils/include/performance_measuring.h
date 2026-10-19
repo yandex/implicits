@@ -3,7 +3,7 @@
 #ifndef BASE_IOS_YANDEX_IMPLICITS_RUNTIME_PERFORMANCE_MEASURING_H_
 #define BASE_IOS_YANDEX_IMPLICITS_RUNTIME_PERFORMANCE_MEASURING_H_
 
-#include <CoreFoundation/CoreFoundation.h>
+#include <stdint.h>
 
 /*
  List of things to measure:
@@ -33,8 +33,13 @@ SUBJECT_ENUMERATION(RECORD_AND_READ_MEASUREMENT_FUNCTIONS)
 /*
  Enum to identify the subject of the measurement.
  */
+#define IMPLICITS_CLOSED_ENUM(_type, _name)                       \
+  enum __attribute__((enum_extensibility(closed))) _name : _type; \
+  typedef enum _name _name;                                       \
+  enum _name : _type
+
 #define ENUM_MEMBER(s) InternalImplicitsMeasurementSubject##s,
-typedef CF_CLOSED_ENUM(uint64_t, InternalImplicitsMeasurementSubject) {
+IMPLICITS_CLOSED_ENUM(unsigned int, InternalImplicitsMeasurementSubject) {
   SUBJECT_ENUMERATION(ENUM_MEMBER)
 };
 
