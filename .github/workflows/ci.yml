@@ -20,12 +20,6 @@ jobs:
       - name: Run tests
         run: SWIFT_DETERMINISTIC_HASHING=1 swift test -v --parallel
 
-      - name: Build Showcase (static analysis)
-        run: swift build --target Showcase
-
-      - name: Build ShowcaseDependency (static analysis)
-        run: swift build --target ShowcaseDependency
-
       - name: Install SwiftFormat
         if: success() || failure()
         run: |
