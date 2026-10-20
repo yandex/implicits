@@ -101,6 +101,6 @@ Every file under `test_data/` is also a build input: the `__TestResourcesCompila
 
 ## Important Constraints
 
-- Static analysis requires explicit type annotations (limited type inference)
+- Static analysis may need explicit type annotations (limited type inference)
 - No support for dynamic dispatch (protocols, closures) in static analysis
 - Scope objects must be explicitly passed as function parameters
