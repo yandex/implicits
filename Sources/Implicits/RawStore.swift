@@ -199,7 +199,11 @@ internal final class RawStore: @unchecked Sendable {
   }
 
   private static func clearTSD() {
+    guard let ptr = pthread_getspecific(key) else {
+      return
+    }
     pthread_setspecific(key, nil)
+    Unmanaged<RawStore>.fromOpaque(ptr).release()
   }
 
   @available(iOS 13, macOS 10.15, *)
