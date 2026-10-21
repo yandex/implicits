@@ -39,6 +39,9 @@ swift test --parallel                # Run tests in parallel
 ```
 CI runs the tests on Linux with `--sanitize=address`, so LeakSanitizer fails the run when memory nothing references is left at exit. `Tests/lsan-suppressions.txt` lists what it reports in Swift's own libraries. The tests use Swift Testing only, so CI passes `--disable-xctest` and skips the empty XCTest run.
 
+### Benchmarks
+See `Benchmarks/README.md`.
+
 ### Formatting
 ```bash
 swiftformat .    # Run SwiftFormat (reads .swiftformat config automatically)
