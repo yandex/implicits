@@ -425,3 +425,42 @@ struct MultipleIDs {
 
   init(_: ImplicitScope) {}
 }
+
+#if DEBUG
+struct SourceLocationTests {
+  @Test func debugDescriptionIncludesSourceLocation() {
+    let scope = ImplicitScope()
+    defer { scope.end() }
+
+    let fileID = #fileID
+    let declarationLine: UInt = #line + 1
+    @Implicit(\.id)
+    var id = 42
+
+    let dump = ImplicitScope.dumpCurrent()
+    let expected = "ImplicitsTests.IDTag: 42 (defined at \(fileID):\(declarationLine))"
+    #expect(dump.debugDescription == expected)
+  }
+
+  @Test func mapOperationTracksSourceLocation() {
+    let scope = ImplicitScope()
+    defer { scope.end() }
+
+    let fileID = #fileID
+    let declarationLine: UInt = #line + 1
+    @Implicit(\.id)
+    var id = 42
+
+    let mapLine: UInt = #line + 1
+    Implicit.map(\.id, to: \.launchID) { $0 }
+
+    let dump = ImplicitScope.dumpCurrent()
+    let expected = """
+    ImplicitsTests.IDTag: 42 (defined at \(fileID):\(declarationLine))
+    ImplicitsTests.LaunchIDTag: 42 (defined at \(fileID):\(mapLine))
+    """
+
+    #expect(dump.debugDescription == expected)
+  }
+}
+#endif
