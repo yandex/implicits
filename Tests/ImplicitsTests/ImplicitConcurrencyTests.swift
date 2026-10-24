@@ -1,8 +1,7 @@
 // Copyright 2025 Yandex LLC. All rights reserved.
 
-import Testing
-
 @_spi(Unsafe) internal import Implicits
+import Testing
 
 struct ImplicitConcurrencyTests {
   @Test func `retrieving in different context`() async {

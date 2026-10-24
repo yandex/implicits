@@ -1,8 +1,7 @@
 // Copyright 2024 Yandex LLC. All rights reserved.
 
-import Foundation
-
 private import ImplicitsCUtils
+import Foundation
 
 public enum MeasurementSubject: CaseIterable {
   case control

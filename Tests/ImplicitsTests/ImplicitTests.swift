@@ -1,10 +1,9 @@
 // Copyright 2022 Yandex LLC. All rights reserved.
 
+@_spi(Unsafe) internal import Implicits
 import Dispatch
 import Foundation
 import Testing
-
-@_spi(Unsafe) internal import Implicits
 
 struct ImplicitTests {
   @Test func `declaring and retrieving implicit arg`() {

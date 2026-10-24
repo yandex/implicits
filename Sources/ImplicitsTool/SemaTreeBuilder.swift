@@ -1521,18 +1521,13 @@ extension SyntaxTree.FunctionCall {
     closure: SyntaxTree.ClosureExpr,
     scopeArg: Syntax
   )? {
-    guard base == nil else { return nil }
-    guard let funcName = name?.value.description,
+    guard base == nil, let funcName = name?.value.description,
           funcName.hasPrefix(ImplicitKeyword.ClosureWrapper.prefix),
-          funcName.hasSuffix(ImplicitKeyword.ClosureWrapper.suffix) else {
-      return nil
-    }
-
-    guard arguments.isEmpty else { return nil }
-    guard let trailingClosure else { return nil }
+          funcName.hasSuffix(ImplicitKeyword.ClosureWrapper.suffix), arguments.isEmpty,
+          let trailingClosure else { return nil }
     let closure = trailingClosure.value
-    guard let params = closure.parameters, !params.isEmpty else { return nil }
-    guard let lastParam = params.last, lastParam.isImplicitScope else { return nil }
+    guard let params = closure.parameters, !params.isEmpty, let lastParam = params.last,
+          lastParam.isImplicitScope else { return nil }
 
     return (
       wrapperName: funcName,

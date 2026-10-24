@@ -1,9 +1,8 @@
 // Copyright 2024 Yandex LLC. All rights reserved.
 
 import Foundation
-import Testing
-
 @_spi(Testing) import ImplicitsTool
+import Testing
 
 struct SerializationTests {
   @Test func integers() {

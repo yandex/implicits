@@ -1,7 +1,6 @@
 // Copyright 2025 Yandex LLC. All rights reserved.
 
 import Testing
-
 @_spi(Testing)
 import ImplicitsTool
 import SwiftParser

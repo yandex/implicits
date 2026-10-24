@@ -1,10 +1,9 @@
 // Copyright 2025 Yandex LLC. All rights reserved.
 
-import Testing
-
 @_spi(Testing) import ImplicitsTool
 import SwiftParser
 import SwiftSyntax
+import Testing
 import TestResources
 
 struct EffectDetectionTests {
