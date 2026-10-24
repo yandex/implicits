@@ -247,6 +247,44 @@ struct ImplicitTests {
     t2Finished.wait()
   }
 
+  #if canImport(Darwin)
+  @Test func `root scopes ended on a thread free their store`() {
+    func bytesInUse() -> Int {
+      var stats = malloc_statistics_t()
+      malloc_zone_statistics(nil, &stats)
+      return stats.size_in_use
+    }
+
+    func rootScope() {
+      let scope = ImplicitScope()
+      defer { scope.end() }
+
+      @Implicit(\.id)
+      var id = 1
+    }
+
+    // Byte counts are process-wide and tests run in parallel, so the smallest growth
+    // of several attempts is the one least disturbed by other tests.
+    nonisolated(unsafe) var growth = Int.max
+    let finished = DispatchSemaphore(value: 0)
+    let thread = Thread {
+      for _ in 0..<5 {
+        let before = bytesInUse()
+        for _ in 0..<10000 {
+          rootScope()
+        }
+        growth = min(growth, bytesInUse() - before)
+      }
+      finished.signal()
+    }
+    thread.start()
+    finished.wait()
+
+    // A store left behind is over 100 bytes: more than a megabyte for these scopes.
+    #expect(growth < 256 * 1024)
+  }
+  #endif
+
   @Test func `capturing implicits`() {
     let scope = ImplicitScope()
     defer { scope.end() }
