@@ -100,6 +100,20 @@ private func ifConfigCodeBlock() {
     requiresUInt16(scope)
   }
 
+  // expected-error@+1 {{Unresolved requirements: UInt16, UInt8}}
+  withScope { scope in
+    #if D
+    @Implicit var v1: UInt8 = 0
+    #elseif E
+    @Implicit var v1: UInt16 = 0
+    #else
+    @Implicit var v1: UInt32 = 0
+    #endif
+    requiresUInt8(scope)
+    requiresUInt16(scope)
+    requiresUInt32(scope)
+  }
+
   // expected-error@+1 {{Unresolved requirements: UInt16, UInt32, UInt8}}
   withScope { scope in
     #if !A

@@ -257,11 +257,14 @@ extension IfConfigClauseSyntax {
     elements?.children(viewMode: .sourceAccurate).map(\.self) ?? []
   }
 
+  var isElse: Bool {
+    poundKeyword.tokenKind == .poundElse
+  }
+
   fileprivate func parsedCondition() -> SXT.IfConfigCondition {
-    condition.map(Syntax.init(_:)).map {
-      poundKeyword.tokenKind == .poundIf ?
-        SXT.IfConfigCondition.if($0) : .elif($0)
-    } ?? .else
+    guard !isElse, let condition else { return .else }
+    let syntax = Syntax(condition)
+    return poundKeyword.tokenKind == .poundIf ? .if(syntax) : .elif(syntax)
   }
 
   fileprivate func topLevelClause(context: Context) -> SXT.IfConfig<TopLevelEntity>.Clause {

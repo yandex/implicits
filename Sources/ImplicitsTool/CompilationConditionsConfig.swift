@@ -19,15 +19,20 @@ extension GeneralVisitor {
   ) -> Self {
     modify(\.visitIfConfigDecl) { oldVisitor in
       { state, node in
-        func eval(_ condition: ExprSyntax) -> Bool? {
-          evaluateCondition(condition, config: config)
+        func isActive(_ clause: IfConfigClauseSyntax) -> Bool? {
+          // The loop reaches `#else` only if no earlier clause was true.
+          if clause.isElse {
+            return true
+          }
+          guard let condition = clause.condition else { return nil }
+          return evaluateCondition(condition, config: config)
         }
 
         var toVisit = [IfConfigClauseSyntax]()
         var hasNonTrivial = false
 
         loop: for clause in node.clauses {
-          switch clause.condition.flatMap(eval) {
+          switch isActive(clause) {
           case false?:
             toVisit.append(clause.withTrivialBody())
           case nil:
