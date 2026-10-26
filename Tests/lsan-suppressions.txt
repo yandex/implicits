@@ -1,0 +1,4 @@
+# LeakSanitizer reports allocations inside Swift's regex implementation as
+# leaks; none of them come from this package's code.
+leak:libswift_RegexParser.so
+leak:libswift_StringProcessing.so
