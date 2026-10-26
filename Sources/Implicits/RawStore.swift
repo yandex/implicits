@@ -195,11 +195,22 @@ internal final class RawStore: @unchecked Sendable {
   }
 
   private static func setToTSD(_ store: RawStore) {
-    pthread_setspecific(key, Unmanaged.passRetained(store).toOpaque())
+    setSpecific(Unmanaged.passRetained(store).toOpaque())
   }
 
   private static func clearTSD() {
-    pthread_setspecific(key, nil)
+    guard let ptr = pthread_getspecific(key) else {
+      return
+    }
+    setSpecific(nil)
+    Unmanaged<RawStore>.fromOpaque(ptr).release()
+  }
+
+  private static func setSpecific(_ value: UnsafeMutableRawPointer?) {
+    let code = pthread_setspecific(key, value)
+    if code != 0 {
+      setSpecificFailedWith(code: code)
+    }
   }
 
   @available(iOS 13, macOS 10.15, *)
@@ -282,6 +293,10 @@ extension RawStore {
 
 private func keyCreateFailedWith(reason: String) -> Never {
   fatalError("pthread_key_create failed with \(reason)")
+}
+
+private func setSpecificFailedWith(code: Int32) -> Never {
+  fatalError("pthread_setspecific failed with code \(code)")
 }
 
 private func noStoreAssociatedWithCurrentContext() -> Never {
