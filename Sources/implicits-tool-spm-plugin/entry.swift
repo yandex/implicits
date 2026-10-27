@@ -12,7 +12,6 @@ struct ImplicitsToolSPMPluginArgs: Codable {
   var moduleName: String
   var sourceFiles: [URL]
   var dependentInterfaces: [URL]
-  var traceUnresolved: Bool
   // Outputs
   var supportFile: URL
   var implicitInterface: URL
@@ -32,10 +31,7 @@ private enum ImplicitsTool {
       files: args.sourceFiles,
       modulename: args.moduleName,
       dependencies: args.dependentInterfaces,
-      config: .init(
-        enableExporting: true,
-        traceUnresolved: args.traceUnresolved
-      )
+      config: .init(enableExporting: true)
     )
 
     try analysisResult.supportFile.render()

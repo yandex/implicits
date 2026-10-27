@@ -10,7 +10,6 @@ struct ImplicitsToolSPMPluginArgs: Codable {
   var moduleName: Target.ID
   var sourceFiles: [URL]
   var dependentInterfaces: [URL]
-  var traceUnresolved: Bool
   // Outputs
   var supportFile: URL
   var implicitInterface: URL
@@ -67,7 +66,6 @@ struct ImplicitsAnalysisPlugin: BuildToolPlugin {
       moduleName: modulename,
       sourceFiles: sources,
       dependentInterfaces: dependentInterfaces,
-      traceUnresolved: true,
       supportFile: paths.supportFile,
       implicitInterface: paths.implicitInterface,
     )

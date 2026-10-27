@@ -28,7 +28,7 @@ public enum StaticAnalysis {
     public init(
       compilationConditions: CompilationConditionsConfig = .unknown,
       enableExporting: Bool = false,
-      traceUnresolved: Bool = false
+      traceUnresolved: Bool = true
     ) {
       self.compilationConditions = compilationConditions
       self.enableExporting = enableExporting
