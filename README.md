@@ -1,7 +1,7 @@
 # Implicits
 
 [![CI](https://github.com/yandex/implicits/actions/workflows/ci.yml/badge.svg)](https://github.com/yandex/implicits/actions/workflows/ci.yml)
-![Swift 6.2+](https://img.shields.io/badge/Swift-6.2+-F05138.svg)
+![Swift 6.3+](https://img.shields.io/badge/Swift-6.3+-F05138.svg)
 ![macOS 11+](https://img.shields.io/badge/macOS-11+-007AFF.svg)
 ![iOS 14+](https://img.shields.io/badge/iOS-14+-007AFF.svg)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)

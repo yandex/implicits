@@ -1,4 +1,4 @@
-// swift-tools-version:6.2
+// swift-tools-version:6.3
 // Copyright 2023 Yandex LLC. All rights reserved.
 
 import CompilerPluginSupport
