@@ -37,7 +37,7 @@ extension RequirementsGraph {
 
   func resolveRequirements(
     diagnostics: inout Diagnostics,
-    traceUnresolved: Bool = false
+    traceUnresolved: Bool
   ) -> ResolveRequirementsResult {
     var cache = [Graph.Index: Set<ImplicitKey>]()
     for ep in entryPoints {
