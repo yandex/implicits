@@ -13,7 +13,7 @@
 ///
 ///   func doWork() {
 ///     withScope(with: implicits) { scope in
-///       @Implicit var network: NetworkService
+///       @Implicit() var network: NetworkService
 ///       // ...
 ///     }
 ///   }
@@ -40,7 +40,7 @@ public enum _WithImplicitsMainActor {
 /// Example:
 /// ```swift
 /// downloadImage(url: avatarURL, completion: #withImplicits { image, scope in
-///   @Implicit var filters: FilterApplier
+///   @Implicit() var filters: FilterApplier
 ///   imageView.image = filters.applyBlur(image)
 /// })
 /// ```
@@ -60,7 +60,7 @@ public macro withImplicits<each A, T>(
 /// Example:
 /// ```swift
 /// downloadImage(url: avatarURL, completion: #withImplicits { image, scope in
-///   @Implicit var filters: FilterApplier
+///   @Implicit() var filters: FilterApplier
 ///   imageView.image = filters.applyBlur(image)
 /// })
 /// ```
@@ -80,7 +80,7 @@ public macro withImplicits<each A, T>(
 /// Example:
 /// ```swift
 /// downloadImage(url: avatarURL, completion: #withImplicits { image, scope in
-///   @Implicit var filters: FilterApplier
+///   @Implicit() var filters: FilterApplier
 ///   imageView.image = filters.applyBlur(image)
 /// })
 /// ```
@@ -100,7 +100,7 @@ public macro withImplicits<each A, T>(
 /// Example:
 /// ```swift
 /// downloadImage(url: avatarURL, completion: #withImplicits { image, scope in
-///   @Implicit var filters: FilterApplier
+///   @Implicit() var filters: FilterApplier
 ///   imageView.image = filters.applyBlur(image)
 /// })
 /// ```
@@ -120,7 +120,7 @@ public macro withImplicits<each A, T>(
 /// Example:
 /// ```swift
 /// downloadImage(url: avatarURL, completion: #withImplicits { image, scope in
-///   @Implicit var filters: FilterApplier
+///   @Implicit() var filters: FilterApplier
 ///   imageView.image = filters.applyBlur(image)
 /// })
 /// ```
@@ -140,7 +140,7 @@ public macro withImplicits<each A, T>(
 /// Example:
 /// ```swift
 /// downloadImage(url: avatarURL, completion: #withImplicits { image, scope in
-///   @Implicit var filters: FilterApplier
+///   @Implicit() var filters: FilterApplier
 ///   imageView.image = filters.applyBlur(image)
 /// })
 /// ```
@@ -160,7 +160,7 @@ public macro withImplicits<each A, T>(
 /// Example:
 /// ```swift
 /// downloadImage(url: avatarURL, completion: #withImplicits { image, scope in
-///   @Implicit var filters: FilterApplier
+///   @Implicit() var filters: FilterApplier
 ///   imageView.image = filters.applyBlur(image)
 /// })
 /// ```
@@ -180,7 +180,7 @@ public macro withImplicits<each A, T>(
 /// Example:
 /// ```swift
 /// downloadImage(url: avatarURL, completion: #withImplicits { image, scope in
-///   @Implicit var filters: FilterApplier
+///   @Implicit() var filters: FilterApplier
 ///   imageView.image = filters.applyBlur(image)
 /// })
 /// ```

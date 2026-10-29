@@ -100,8 +100,8 @@ func buyClothes(_ scope: ImplicitScope) { pay(200, scope) }
 func buyCoffee(_ scope: ImplicitScope) { pay(5, scope) }
 
 func pay(_ price: Int, _: ImplicitScope) {
-  @Implicit var wallet: Wallet
-  @Implicit var card: DiscountCard
+  @Implicit() var wallet: Wallet
+  @Implicit() var card: DiscountCard
   wallet.charge(price * (1 - card.discount))
 }
 
