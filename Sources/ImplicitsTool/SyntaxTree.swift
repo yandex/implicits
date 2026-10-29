@@ -900,6 +900,21 @@ extension SyntaxTree.TypeModel.EffectSpecifiers {
 }
 
 extension SyntaxTree.TypeModel {
+  var simpleIdentifier: String? {
+    switch self {
+    case let .identifier(id): id
+    default: nil
+    }
+  }
+
+  var isMainActor: Bool {
+    simpleIdentifier == ImplicitKeyword.SwiftAttribute.mainActor
+  }
+
+  var isSendable: Bool {
+    simpleIdentifier == ImplicitKeyword.SwiftAttribute.sendable
+  }
+
   func mapSyntax<S>(_ t: (Syntax) -> S) -> SyntaxTree<S>.TypeModel {
     switch self {
     case let .identifier(v):

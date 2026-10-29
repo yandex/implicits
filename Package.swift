@@ -141,5 +141,16 @@ let package = Package(
       ],
       plugins: ["ImplicitsAnalysisPlugin"]
     ),
+    .testTarget(
+      name: "Swift5IntegrationTests",
+      dependencies: ["Implicits"],
+      swiftSettings: [
+        .swiftLanguageMode(.v5),
+        .enableExperimentalFeature("StrictConcurrency"),
+        .enableExperimentalFeature("AccessLevelOnImport"),
+        .treatAllWarnings(as: .error),
+      ],
+      plugins: ["ImplicitsAnalysisPlugin"]
+    ),
   ]
 )

@@ -340,7 +340,8 @@ extension SemaTreeBuilder.Context {
           let funcName = call.name?.value.description else {
       return false
     }
-    return base.description == "MainActor" && funcName == "assumeIsolated"
+    return base.description == ImplicitKeyword.SwiftAttribute.mainActor
+      && funcName == "assumeIsolated"
   }
 
   // MARK: - parsing time registration

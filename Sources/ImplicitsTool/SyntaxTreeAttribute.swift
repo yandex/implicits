@@ -2,10 +2,7 @@
 
 extension SyntaxTree.Attribute {
   var simpleIdentifier: String? {
-    switch self.name {
-    case let .identifier(id): id
-    default: nil
-    }
+    name.simpleIdentifier
   }
 
   var isImplicit: Bool {
