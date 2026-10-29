@@ -1091,17 +1091,15 @@ enum SemaTreeBuilder<
     // closureParamCount is all params except the scope
     let closureParamCount = params.count - 1
 
-    var typeAttributes = closure.typeAttributes
-    if macro.requestsMainActorIsolation,
-       !typeAttributes.contains(where: \.isMainActor) {
-      typeAttributes.append(.identifier("MainActor"))
-    }
-
-    let effects = ClosureEffects(
+    var effects = ClosureEffects(
       isAsync: closure.isAsync,
       isThrowing: closure.isThrowing,
-      typeAttributes: typeAttributes
+      typeAttributes: closure.typeAttributes
     )
+    if macro.requestsMainActorIsolation,
+       !effects.typeAttributes.contains(where: \.isMainActor) {
+      effects.typeAttributes.append(.identifier(ImplicitKeyword.SwiftAttribute.mainActor))
+    }
     let body = visit(
       codeBlockEntities: closure.body,
       context: &context[withScope: closure, scopeParamter: lastParam.name.syntax]
@@ -1562,20 +1560,11 @@ extension SyntaxTree.MacroExpansion {
   /// into the syntax tree.
   var requestsMainActorIsolation: Bool {
     arguments.contains { arg in
-      guard arg.name?.value == "isolation",
+      guard arg.name?.value == ImplicitKeyword.Macro.isolationArgName,
             case let .memberAccessor(_, name) = arg.value.value
       else { return false }
-      return name == "mainActor"
+      return name == ImplicitKeyword.Macro.mainActorIsolation
     }
-  }
-}
-
-extension SyntaxTree.TypeModel {
-  fileprivate var isMainActor: Bool {
-    if case let .identifier(name) = self {
-      return name == "MainActor"
-    }
-    return false
   }
 }
 

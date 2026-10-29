@@ -31,7 +31,9 @@ internal func __implicit_bag_support_file_swift_105_19() -> Implicits {
   Implicits()
 }
 
-internal func withSupportZeroImplicits<T>(_ body: @escaping (ImplicitScope) -> T) -> () -> T {
+internal func withSupportZeroImplicits<T>(
+  _ body: @escaping (ImplicitScope) -> T
+) -> () -> T {
   let implicits = Implicits(unsafeKeys: Implicits.getRawKey((UInt16).self), Implicits.getRawKey((UInt8).self))
   return {
     let scope = ImplicitScope(with: implicits)
@@ -42,7 +44,9 @@ internal func withSupportZeroImplicits<T>(_ body: @escaping (ImplicitScope) -> T
   }
 }
 
-internal func withSupportOneImplicits<T, A1>(_ body: @escaping (A1, ImplicitScope) -> T) -> (A1) -> T {
+internal func withSupportOneImplicits<T, A1>(
+  _ body: @escaping (A1, ImplicitScope) -> T
+) -> (A1) -> T {
   let implicits = Implicits(unsafeKeys: Implicits.getRawKey((UInt16).self), Implicits.getRawKey((UInt8).self))
   return { arg1 in
     let scope = ImplicitScope(with: implicits)
@@ -53,7 +57,9 @@ internal func withSupportOneImplicits<T, A1>(_ body: @escaping (A1, ImplicitScop
   }
 }
 
-internal func withSupportTwoImplicits<T, A1, A2>(_ body: @escaping (A1, A2, ImplicitScope) -> T) -> (A1, A2) -> T {
+internal func withSupportTwoImplicits<T, A1, A2>(
+  _ body: @escaping (A1, A2, ImplicitScope) -> T
+) -> (A1, A2) -> T {
   let implicits = Implicits(unsafeKeys: Implicits.getRawKey((UInt16).self), Implicits.getRawKey((UInt8).self))
   return { arg1, arg2 in
     let scope = ImplicitScope(with: implicits)
@@ -64,7 +70,9 @@ internal func withSupportTwoImplicits<T, A1, A2>(_ body: @escaping (A1, A2, Impl
   }
 }
 
-internal func withAsyncImplicits<T>(_ body: @escaping (ImplicitScope) async -> T) -> () async -> T {
+internal func withAsyncImplicits<T>(
+  _ body: @escaping (ImplicitScope) async -> T
+) -> () async -> T {
   let implicits = Implicits(unsafeKeys: Implicits.getRawKey((UInt16).self), Implicits.getRawKey((UInt8).self))
   return {
     let scope = ImplicitScope(with: implicits)
@@ -75,7 +83,9 @@ internal func withAsyncImplicits<T>(_ body: @escaping (ImplicitScope) async -> T
   }
 }
 
-internal func withThrowingImplicits<T>(_ body: @escaping (ImplicitScope) throws -> T) -> () throws -> T {
+internal func withThrowingImplicits<T>(
+  _ body: @escaping (ImplicitScope) throws -> T
+) -> () throws -> T {
   let implicits = Implicits(unsafeKeys: Implicits.getRawKey((UInt16).self), Implicits.getRawKey((UInt8).self))
   return {
     let scope = ImplicitScope(with: implicits)
@@ -86,7 +96,9 @@ internal func withThrowingImplicits<T>(_ body: @escaping (ImplicitScope) throws 
   }
 }
 
-internal func withAsyncThrowingImplicits<T>(_ body: @escaping (ImplicitScope) async throws -> T) -> () async throws -> T {
+internal func withAsyncThrowingImplicits<T>(
+  _ body: @escaping (ImplicitScope) async throws -> T
+) -> () async throws -> T {
   let implicits = Implicits(unsafeKeys: Implicits.getRawKey((UInt16).self), Implicits.getRawKey((UInt8).self))
   return {
     let scope = ImplicitScope(with: implicits)
@@ -97,7 +109,10 @@ internal func withAsyncThrowingImplicits<T>(_ body: @escaping (ImplicitScope) as
   }
 }
 
-internal func withMainActorImplicits<T>(_ body: @escaping @MainActor (ImplicitScope) -> T) -> @MainActor () -> T {
+@preconcurrency @MainActor
+internal func withMainActorImplicits<T>(
+  _ body: @escaping @MainActor (ImplicitScope) -> T
+) -> @MainActor @Sendable () -> T {
   let implicits = Implicits(unsafeKeys: Implicits.getRawKey((UInt16).self), Implicits.getRawKey((UInt8).self))
   return {
     let scope = ImplicitScope(with: implicits)
@@ -108,7 +123,10 @@ internal func withMainActorImplicits<T>(_ body: @escaping @MainActor (ImplicitSc
   }
 }
 
-internal func __implicit_wrap_support_file_swift_75_7<T>(_ body: @escaping @MainActor (ImplicitScope) -> T) -> @MainActor () -> T {
+@preconcurrency @MainActor
+internal func __implicit_wrap_support_file_swift_75_7<T>(
+  _ body: @escaping @MainActor (ImplicitScope) -> T
+) -> @MainActor @Sendable () -> T {
   let implicits = Implicits(unsafeKeys: Implicits.getRawKey((UInt16).self), Implicits.getRawKey((UInt8).self))
   return {
     let scope = ImplicitScope(with: implicits)
@@ -119,7 +137,9 @@ internal func __implicit_wrap_support_file_swift_75_7<T>(_ body: @escaping @Main
   }
 }
 
-internal func __implicit_wrap_support_file_swift_81_7<T>(_ body: @escaping (ImplicitScope) -> T) -> () -> T {
+internal func __implicit_wrap_support_file_swift_81_7<T>(
+  _ body: @escaping (ImplicitScope) -> T
+) -> () -> T {
   let implicits = Implicits(unsafeKeys: Implicits.getRawKey((UInt16).self), Implicits.getRawKey((UInt8).self))
   return {
     let scope = ImplicitScope(with: implicits)
@@ -130,7 +150,9 @@ internal func __implicit_wrap_support_file_swift_81_7<T>(_ body: @escaping (Impl
   }
 }
 
-internal func __implicit_wrap_support_file_swift_86_7<T>(_ body: @escaping (ImplicitScope) async throws -> T) -> () async throws -> T {
+internal func __implicit_wrap_support_file_swift_86_7<T>(
+  _ body: @escaping (ImplicitScope) async throws -> T
+) -> () async throws -> T {
   let implicits = Implicits(unsafeKeys: Implicits.getRawKey((UInt16).self), Implicits.getRawKey((UInt8).self))
   return {
     let scope = ImplicitScope(with: implicits)
@@ -141,7 +163,10 @@ internal func __implicit_wrap_support_file_swift_86_7<T>(_ body: @escaping (Impl
   }
 }
 
-internal func __implicit_wrap_support_file_swift_179_7<T>(_ body: @escaping @MainActor (ImplicitScope) -> T) -> @MainActor () -> T {
+@preconcurrency @MainActor
+internal func __implicit_wrap_support_file_swift_179_7<T>(
+  _ body: @escaping @MainActor (ImplicitScope) -> T
+) -> @MainActor @Sendable () -> T {
   let implicits = Implicits(unsafeKeys: Implicits.getRawKey((UInt16).self), Implicits.getRawKey((UInt8).self))
   return {
     let scope = ImplicitScope(with: implicits)

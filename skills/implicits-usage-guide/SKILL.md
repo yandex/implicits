@@ -77,6 +77,8 @@ fetchData(completion: #withImplicits { result, scope in
 
 Effects (`async`/`throws`) are inferred. `@MainActor` is preserved on the result; other global actors aren't — use named wrappers for those.
 
+`#withImplicits` takes an `isolation:` parameter: `.mainActor` selects the `@MainActor` variant explicitly when the compiler or the analyzer can't choose it.
+
 For full details on `#withImplicits`, named wrappers, capture lists, and `#implicits`, see `docs/closures.md` in the Implicits repo.
 
 ## Factory Pattern

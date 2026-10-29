@@ -32,7 +32,7 @@ private func withBag(_: ImplicitScope) {
   }
 }
 
-private func withImplicits(_: ImplicitScope) {
+@MainActor private func withImplicits(_: ImplicitScope) {
   _ = withSupportZeroImplicits { scope in
     requires(scope)
   }
@@ -175,7 +175,7 @@ private func requires(_: ImplicitScope) {
 
 // Explicit isolation argument: analyzer must respect `isolation: .mainActor`
 // even when the closure body lacks an `@MainActor` annotation.
-private func withExplicitIsolation(_: ImplicitScope) {
+@MainActor private func withExplicitIsolation(_: ImplicitScope) {
   _ = #withImplicits(isolation: .mainActor) { scope in
     requires(scope)
   }

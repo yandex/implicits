@@ -79,6 +79,16 @@ let onTap: @MainActor () -> Void = #withImplicits { @MainActor scope in
 }
 ```
 
+Use `isolation: .mainActor` to select the `@MainActor` variant explicitly when
+the compiler or the static analyzer struggles to choose it.
+
+```swift
+let load = #withImplicits(isolation: .mainActor) { scope in
+  @Implicit() var api: FeedAPI
+  return try await api.fetch()
+}
+```
+
 Custom global actors (`@MyGlobalActor`) are not supported — Swift macros cannot be parameterized over type attributes. For non-`@MainActor` isolation, use [Named Wrappers](#named-wrappers-withnameimplicits): the build-time analyzer reads the closure's attributes per call site and generates a correctly typed wrapper.
 
 ### Limitations

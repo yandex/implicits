@@ -154,27 +154,38 @@ extension SupportFile {
         }
       }
 
-      let typeAttrs = wrapper.effects.typeAttributesSyntax
-
       let closureType = FunctionTypeSyntax.wrapperType(
         paramCount: wrapper.closureParamCount,
         extraParam: "ImplicitScope",
         effects: wrapper.effects
-      ).withTypeAttributes(typeAttrs)
+      ).withTypeAttributes(wrapper.effects.typeAttributesSyntax)
+
+      let attributes = wrapper.effects.typeAttributes
+      let isMainActor = attributes.contains(where: \.isMainActor)
+
+      // Explicitly mark return type as Sendable for Swift 5 consumers.
+      var returnEffects = wrapper.effects
+      if isMainActor, !attributes.contains(where: \.isSendable) {
+        returnEffects.typeAttributes.append(.identifier(ImplicitKeyword.SwiftAttribute.sendable))
+      }
 
       let returnType = FunctionTypeSyntax.wrapperType(
         paramCount: wrapper.closureParamCount,
-        effects: wrapper.effects
-      ).withTypeAttributes(typeAttrs)
+        effects: returnEffects
+      ).withTypeAttributes(returnEffects.typeAttributesSyntax)
 
       let funcSignature = FunctionSignatureSyntax(
-        parameterClause: FunctionParameterClauseSyntax(parameters: [
-          FunctionParameterSyntax(
-            firstName: "_",
-            secondName: "body",
-            type: closureType.escaping()
-          ),
-        ]),
+        parameterClause: FunctionParameterClauseSyntax(
+          leftParen: .leftParenToken(trailingTrivia: .newline),
+          parameters: [
+            FunctionParameterSyntax(
+              firstName: "_",
+              secondName: "body",
+              type: closureType.escaping()
+            ),
+          ],
+          rightParen: .rightParenToken(leadingTrivia: .newline)
+        ),
         returnClause: ReturnClauseSyntax(type: returnType)
       )
 
@@ -223,7 +234,10 @@ extension SupportFile {
         ))
       }
 
+      let mainActorAttributes: AttributeListSyntax = "@preconcurrency @MainActor"
       return FunctionDeclSyntax(
+        attributes: isMainActor
+          ? mainActorAttributes.with(\.trailingTrivia, .newline) : [],
         modifiers: [.internal],
         name: "\(raw: funcName)",
         genericParameterClause: genericParams,

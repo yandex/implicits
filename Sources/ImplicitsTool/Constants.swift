@@ -33,6 +33,8 @@ enum ImplicitKeyword {
     static let testable = "testable"
     static let exported = "_exported"
     static let spi = "_spi"
+    static let mainActor = "MainActor"
+    static let sendable = "Sendable"
   }
 
   static let importModuleName = "Implicits"
@@ -48,5 +50,7 @@ enum ImplicitKeyword {
   enum Macro {
     static let withImplicits = "withImplicits"
     static let implicits = "implicits"
+    static let isolationArgName = "isolation"
+    static let mainActorIsolation = "mainActor"
   }
 }
