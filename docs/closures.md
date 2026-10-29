@@ -49,13 +49,13 @@ When your closure needs additional parameters, list them before `scope`:
 ```swift
 // One parameter
 downloadImage(url: avatarURL, completion: #withImplicits { image, scope in
-  @Implicit var filters: FilterApplier
+  @Implicit() var filters: FilterApplier
   imageView.image = filters.applyBlur(image)
 })
 
 // Multiple parameters
 fetchData(completion: #withImplicits { data, response, scope in
-  @Implicit var parser: DataParser
+  @Implicit() var parser: DataParser
   processResult(parser.parse(data), scope)
 })
 ```
@@ -74,7 +74,7 @@ The macro infers `async` and `throws` from the closure body, and preserves `@Mai
 #withImplicits { scope async throws in ... }
 
 let onTap: @MainActor () -> Void = #withImplicits { @MainActor scope in
-  @Implicit var theme: Theme
+  @Implicit() var theme: Theme
   button.backgroundColor = theme.accent
 }
 ```
@@ -103,7 +103,7 @@ class FeedComponent {
 
 // With parameters
 let onImageLoaded = withImageImplicits { (image: UIImage, scope) in
-  @Implicit var filters: FilterApplier
+  @Implicit() var filters: FilterApplier
   imageView.image = filters.applyBlur(image)
 }
 ```

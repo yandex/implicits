@@ -20,7 +20,7 @@ func start() {
 func process(_ scope: ImplicitScope) { fetch(scope) }
 
 func fetch(_ scope: ImplicitScope) {
-  @Implicit var network: NetworkService  // retrieve
+  @Implicit() var network: NetworkService  // retrieve
   network.request()
 }
 ```
@@ -29,14 +29,14 @@ func fetch(_ scope: ImplicitScope) {
 - `ImplicitScope` — last argument, no parameter label
 - Always `defer { scope.end() }` after creating a scope
 - Declaration: `@Implicit var x = value` (with initializer)
-- Retrieval: `@Implicit var x: Type` (no initializer, explicit type)
+- Retrieval: `@Implicit() var x: Type` (no initializer, explicit type)
 - Missing implicit = compile-time error
 
 ## Keys: Type-Based vs Named
 
 **Type-based (default)** — the type itself is the key:
 ```swift
-@Implicit var network: NetworkService
+@Implicit() var network: NetworkService
 ```
 
 **Named keys** — use when type alone doesn't explain meaning:
@@ -70,7 +70,7 @@ Closures don't inherit scope automatically. Use `#withImplicits` to capture impl
 
 ```swift
 fetchData(completion: #withImplicits { result, scope in
-  @Implicit var handler: ResultHandler
+  @Implicit() var handler: ResultHandler
   handler.process(result)
 })
 ```
@@ -101,7 +101,7 @@ class Component {
 `@Implicit` works as a stored property — the type needs a scope in its initializer:
 ```swift
 struct View {
-  @Implicit var theme: Theme
+  @Implicit() var theme: Theme
 
   init(_ scope: ImplicitScope) {}
 }
