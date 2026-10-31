@@ -39,6 +39,15 @@ swift test --parallel                # Run tests in parallel
 ```
 CI runs the tests on Linux with `--sanitize=address`, so LeakSanitizer fails the run when memory nothing references is left at exit. `Tests/lsan-suppressions.txt` lists what it reports in Swift's own libraries. The tests use Swift Testing only, so CI passes `--disable-xctest` and skips the empty XCTest run.
 
+### Benchmarks
+Benchmarks of the implicit store live in the separate `Benchmarks/` package (ordo-one/benchmark), so the library doesn't depend on it. They refuse to run without deterministic hashing:
+```bash
+SWIFT_DETERMINISTIC_HASHING=1 swift package --package-path Benchmarks benchmark                        # Run all benchmarks
+SWIFT_DETERMINISTIC_HASHING=1 swift package --package-path Benchmarks benchmark baseline update main   # Save the current results as baseline "main"
+SWIFT_DETERMINISTIC_HASHING=1 swift package --package-path Benchmarks benchmark baseline compare main  # Compare a change against it
+```
+Even with fixed hashing, the store's layout follows metadata addresses, so instruction counts move between builds and boots (up to 20% on declare), and one run against one run can't call a regression; `Benchmarks/compare.py` compares builds over several process runs. `Benchmarks/README.md` has the results and where the time and memory go. A release build takes about five minutes, because the new-type benchmarks generate 10,000 types.
+
 ### Formatting
 ```bash
 swiftformat .    # Run SwiftFormat (reads .swiftformat config automatically)
