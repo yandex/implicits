@@ -29,3 +29,5 @@ swift run -c release --package-path Benchmarks compare-builds \
 ```
 
 `--help` describes how it runs and what it reports. A small difference can still be layout alone: confirm it in a profile before crediting the change.
+
+A comment `/benchmark` on a pull request runs this comparison against main in CI and replies with the report.

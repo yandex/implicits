@@ -1,0 +1,86 @@
+name: Benchmarks
+
+on:
+  issue_comment:
+    types: [created]
+  # Temporary: a comment runs only the default branch's workflow, so this
+  # pull request checks the comparison on its own pushes. Remove before merge.
+  pull_request:
+    branches: [main]
+
+jobs:
+  compare:
+    # This job runs the pull request's code, so only people with write access
+    # can start it, and its token can only read.
+    if: >-
+      github.event_name == 'pull_request'
+      || (github.event.issue.pull_request
+        && startsWith(github.event.comment.body, '/benchmark')
+        && contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.comment.author_association))
+    runs-on: macos-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    concurrency:
+      group: benchmarks-${{ github.event.pull_request.number || github.event.issue.number }}
+      cancel-in-progress: true
+
+    steps:
+      # The pull request merged into main; HEAD^1 is that main.
+      - uses: actions/checkout@v4
+        with:
+          ref: refs/pull/${{ github.event.pull_request.number || github.event.issue.number }}/merge
+          fetch-depth: 2
+          persist-credentials: false
+
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Compare with main
+        run: |
+          swift run -c release --package-path Benchmarks compare-builds \
+            --repository . --work-directory Benchmarks/.build/compare-builds \
+            HEAD^1 HEAD > report.txt
+          cat report.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: report
+          path: report.txt
+
+  reply:
+    needs: compare
+    if: >-
+      always()
+      && github.event_name == 'issue_comment'
+      && needs.compare.result != 'skipped'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+
+    steps:
+      - uses: actions/download-artifact@v4
+        if: needs.compare.result == 'success'
+        with:
+          name: report
+
+      - name: Reply
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RESULT: ${{ needs.compare.result }}
+          RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          PR: ${{ github.event.issue.number }}
+        run: |
+          if [ "$RESULT" = success ]; then
+            {
+              echo '`HEAD^1` is main, `HEAD` is main with this pull request.'
+              echo '```'
+              cat report.txt
+              echo '```'
+            } > body.md
+          else
+            echo "The benchmarks didn't finish: $RUN" > body.md
+          fi
+          gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --body-file body.md
