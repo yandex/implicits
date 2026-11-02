@@ -46,6 +46,17 @@ public struct Implicit<Key: ImplicitKeyType> {
   /// - Parameter wrappedValue: The value of the implicit argument.
   /// - Parameter key: The key of the implicit argument.
   /// - Parameter scope: Scope to keep alive
+  #if DEBUG
+  @inlinable
+  public init(
+    wrappedValue: Value, _: KeySpecifier<Key>,
+    fileID: StaticString = #fileID,
+    line: UInt = #line
+  ) {
+    Self.setValue(wrappedValue, fileID: fileID, line: line)
+    self.init(value: wrappedValue)
+  }
+  #else
   @inlinable
   public init(
     wrappedValue: Value, _: KeySpecifier<Key>
@@ -53,6 +64,7 @@ public struct Implicit<Key: ImplicitKeyType> {
     Self.setValue(wrappedValue)
     self.init(value: wrappedValue)
   }
+  #endif
 
   /// Creates an implicit argument with the specified key and value.
   /// Here the key is not specified and inferred as `TypeImplicitKey<T>`
@@ -67,6 +79,17 @@ public struct Implicit<Key: ImplicitKeyType> {
   /// Creates an implicit argument with the specified value.
   /// Here the key is not specified and inferred as `TypeImplicitKey<T>`
   /// - Parameter scope: Scope to keep alive
+  #if DEBUG
+  @inlinable
+  public init<T>(
+    wrappedValue: T,
+    fileID: StaticString = #fileID,
+    line: UInt = #line
+  ) where Key == TypeImplicitKey<T> {
+    Self.setValue(wrappedValue, fileID: fileID, line: line)
+    self.init(value: wrappedValue)
+  }
+  #else
   @inlinable
   public init<T>(
     wrappedValue: T
@@ -74,6 +97,7 @@ public struct Implicit<Key: ImplicitKeyType> {
     Self.setValue(wrappedValue)
     self.init(value: wrappedValue)
   }
+  #endif
 
   /// Retrieves the value of the implicit argument.
   /// Here the key is not specified and inferred as `TypeImplicitKey<T>`.
@@ -95,6 +119,17 @@ public struct Implicit<Key: ImplicitKeyType> {
   /// Retrieves the value of the implicit argument.
   /// - Parameter wrappedValue: The value of the implicit argument.
   /// - Parameter key: The value type of the implicit argument.
+  #if DEBUG
+  @inlinable
+  public init<T>(
+    wrappedValue: T, _: T.Type,
+    fileID: StaticString = #fileID,
+    line: UInt = #line
+  ) where Key == TypeImplicitKey<T> {
+    Self.setValue(wrappedValue, fileID: fileID, line: line)
+    self.init(value: wrappedValue)
+  }
+  #else
   @inlinable
   public init<T>(
     wrappedValue: T, _: T.Type
@@ -102,6 +137,7 @@ public struct Implicit<Key: ImplicitKeyType> {
     Self.setValue(wrappedValue)
     self.init(value: wrappedValue)
   }
+  #endif
 
   @inlinable
   internal init(value: Value) {
@@ -113,10 +149,23 @@ public struct Implicit<Key: ImplicitKeyType> {
     Store.current().value
   }
 
+  #if DEBUG
   @inlinable
-  static func setValue(_ value: Value) {
-    Store.current().value = value
+  static func setValue(
+    _ value: Value,
+    fileID: StaticString = #fileID,
+    line: UInt = #line
+  ) {
+    Store.current().setValue(value, fileID: fileID, line: line)
   }
+  #else
+  @inlinable
+  static func setValue(
+    _ value: Value
+  ) {
+    Store.current().setValue(value)
+  }
+  #endif
 }
 
 extension Implicit {
@@ -131,6 +180,19 @@ extension Implicit {
   ///  ```
   ///  Implicit.map(\.user, to: \.name) { $0.name }
   /// ```
+  #if DEBUG
+  @inlinable
+  public static func map<To: ImplicitKeyType>(
+    _ from: KeySpecifier<Key>,
+    to: KeySpecifier<To>,
+    _ transform: (Key.Value) -> To.Value,
+    fileID: StaticString = #fileID,
+    line: UInt = #line
+  ) {
+    let store = TypedStore.current()
+    store.setValue(transform(store[from]), for: to, fileID: fileID, line: line)
+  }
+  #else
   @inlinable
   public static func map<To: ImplicitKeyType>(
     _ from: KeySpecifier<Key>,
@@ -138,8 +200,9 @@ extension Implicit {
     _ transform: (Key.Value) -> To.Value
   ) {
     let store = TypedStore.current()
-    store[to] = transform(store[from])
+    store.setValue(transform(store[from]), for: to)
   }
+  #endif
 
   ///  Maps the value of the implicit argument to the value of another implicit argument
   ///  with the specified key.
@@ -152,6 +215,19 @@ extension Implicit {
   ///  ```
   ///  Implicit.map(User.self, to: \.name) { $0.name }
   /// ```
+  #if DEBUG
+  @inlinable
+  public static func map<From, To: ImplicitKeyType>(
+    _ from: From.Type,
+    to: KeySpecifier<To>,
+    _ transform: (Key.Value) -> To.Value,
+    fileID: StaticString = #fileID,
+    line: UInt = #line
+  ) where Key == TypeImplicitKey<From> {
+    let store = TypedStore.current()
+    store.setValue(transform(store[from]), for: to, fileID: fileID, line: line)
+  }
+  #else
   @inlinable
   public static func map<From, To: ImplicitKeyType>(
     _ from: From.Type,
@@ -159,8 +235,9 @@ extension Implicit {
     _ transform: (Key.Value) -> To.Value
   ) where Key == TypeImplicitKey<From> {
     let store = TypedStore.current()
-    store[to] = transform(store[from])
+    store.setValue(transform(store[from]), for: to)
   }
+  #endif
 
   ///  Maps the value of the implicit argument to the value of another implicit argument
   ///  with the specified key.
@@ -173,6 +250,19 @@ extension Implicit {
   ///  ```
   ///  Implicit.map(\.user, to: String.self) { $0.name }
   /// ```
+  #if DEBUG
+  @inlinable
+  public static func map<To>(
+    _ from: KeySpecifier<Key>,
+    to: To.Type,
+    _ transform: (Key.Value) -> To,
+    fileID: StaticString = #fileID,
+    line: UInt = #line
+  ) {
+    let store = TypedStore.current()
+    store.setValue(transform(store[from]), for: to, fileID: fileID, line: line)
+  }
+  #else
   @inlinable
   public static func map<To>(
     _ from: KeySpecifier<Key>,
@@ -180,8 +270,9 @@ extension Implicit {
     _ transform: (Key.Value) -> To
   ) {
     let store = TypedStore.current()
-    store[to] = transform(store[from])
+    store.setValue(transform(store[from]), for: to)
   }
+  #endif
 
   ///  Maps the value of the implicit argument to the value of another implicit argument
   ///  with the specified key.
@@ -194,6 +285,19 @@ extension Implicit {
   ///  ```
   ///  Implicit.map(User.self, to: String.self) { $0.name }
   /// ```
+  #if DEBUG
+  @inlinable
+  public static func map<From, To>(
+    _ from: From.Type,
+    to: To.Type,
+    _ transform: (Key.Value) -> To,
+    fileID: StaticString = #fileID,
+    line: UInt = #line
+  ) where Key == TypeImplicitKey<From> {
+    let store = TypedStore.current()
+    store.setValue(transform(store[from]), for: to, fileID: fileID, line: line)
+  }
+  #else
   @inlinable
   public static func map<From, To>(
     _ from: From.Type,
@@ -201,6 +305,7 @@ extension Implicit {
     _ transform: (Key.Value) -> To
   ) where Key == TypeImplicitKey<From> {
     let store = TypedStore.current()
-    store[to] = transform(store[from])
+    store.setValue(transform(store[from]), for: to)
   }
+  #endif
 }
