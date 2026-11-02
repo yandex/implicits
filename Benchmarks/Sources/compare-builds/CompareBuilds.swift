@@ -115,22 +115,17 @@ struct CompareBuilds: AsyncParsableCommand {
     let commit = try await execute(
       .name("git"), "-C", repository, "rev-parse", "--verify", "\(revision)^{commit}"
     )
-    let export = "\(workDirectory)/\(commit)"
-    let files = FileManager.default
-    if !files.fileExists(atPath: export) {
-      log("exporting \(revision)")
-      let partial = "\(export).partial"
-      if files.fileExists(atPath: partial) {
-        try files.removeItem(atPath: partial)
-      }
-      try files.createDirectory(atPath: partial, withIntermediateDirectories: true)
-      try await execute(
-        .name("git"), "-C", repository, "archive", "--output", "\(partial).tar", commit
-      )
-      try await execute(.name("tar"), "-xf", "\(partial).tar", "-C", partial)
-      try files.removeItem(atPath: "\(partial).tar")
-      try files.moveItem(atPath: partial, toPath: export)
-    }
+    // Named after the revision, not its commit, so that a branch that moves
+    // keeps its build and rebuilds only what changed.
+    let export = "\(workDirectory)/\(revision.replacingOccurrences(of: "/", with: "_"))"
+    log("exporting \(revision)")
+    try removeContents(of: export, except: "Benchmarks")
+    try removeContents(of: "\(export)/Benchmarks", except: ".build")
+    try await execute(
+      .name("git"), "-C", repository, "archive", "--output", "\(export).tar", commit
+    )
+    try await execute(.name("tar"), "-xf", "\(export).tar", "-C", export)
+    try FileManager.default.removeItem(atPath: "\(export).tar")
     try replaceSources(
       of: "\(export)/Benchmarks", with: "\(repository)/Benchmarks"
     )
@@ -150,13 +145,19 @@ struct CompareBuilds: AsyncParsableCommand {
 /// Replaces everything in `destination` but its `.build` with the files of
 /// `source` but its `.build`, so the next build of `destination` is incremental.
 private func replaceSources(of destination: String, with source: String) throws {
+  try removeContents(of: destination, except: ".build")
   let files = FileManager.default
-  try files.createDirectory(atPath: destination, withIntermediateDirectories: true)
-  for item in try files.contentsOfDirectory(atPath: destination) where item != ".build" {
-    try files.removeItem(atPath: "\(destination)/\(item)")
-  }
   for item in try files.contentsOfDirectory(atPath: source) where item != ".build" {
     try files.copyItem(atPath: "\(source)/\(item)", toPath: "\(destination)/\(item)")
+  }
+}
+
+/// Empties `directory` but its item `kept`, creating the directory if needed.
+private func removeContents(of directory: String, except kept: String) throws {
+  let files = FileManager.default
+  try files.createDirectory(atPath: directory, withIntermediateDirectories: true)
+  for item in try files.contentsOfDirectory(atPath: directory) where item != kept {
+    try files.removeItem(atPath: "\(directory)/\(item)")
   }
 }
 
