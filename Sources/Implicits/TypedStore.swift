@@ -41,13 +41,13 @@ internal struct TypedStore {
         guard let entry = raw[Key.id] else {
           Key.noValueFatalError()
         }
-        return unsafeDowncast(entry, to: EntryConcrete<Key.Value>.self).value
+        return entry.value(as: Key.Value.self)
       }
     }
 
     nonmutating set {
       measure(.typedStoreSubscriptSet) {
-        raw[Key.id] = EntryConcrete(value: newValue) as EntryAbstract
+        raw[Key.id] = Entry.make(newValue)
       }
     }
   }
@@ -101,28 +101,6 @@ internal struct StoreValue<Key: ImplicitKeyType> {
   internal static func current() -> Self {
     .init(store: .current())
   }
-}
-
-/// A type-erased wrapper over an implicit value.
-///
-/// Allows storing the value in `RawStore` and efficiently downcasting back to its original type.
-@usableFromInline
-final class EntryConcrete<T>: EntryAbstract {
-  @usableFromInline
-  var value: T
-
-  @inlinable
-  init(value: T) {
-    self.value = value
-  }
-
-  @inlinable
-  deinit {}
-
-  #if DEBUG
-  @inlinable
-  override var anyValue: any Any { value }
-  #endif
 }
 
 extension ImplicitKeyType {

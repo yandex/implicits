@@ -7,8 +7,6 @@ import Glibc
 #endif
 
 @usableFromInline
-internal typealias Entry = EntryAbstract
-@usableFromInline
 internal typealias Arguments = [ImplicitKeyIdentifier: Entry]
 
 /// A context-specific store for implicit arguments.
@@ -301,21 +299,4 @@ private func setSpecificFailedWith(code: Int32) -> Never {
 
 private func noStoreAssociatedWithCurrentContext() -> Never {
   fatalError("No implicit store associated with current context")
-}
-
-/// A base class for stored values.
-///
-/// Actual values are stored in subclasses of this class.
-@usableFromInline
-class EntryAbstract {
-  @inlinable
-  init() {}
-
-  @inlinable
-  deinit {}
-
-  #if DEBUG
-  @inlinable
-  var anyValue: any Any { fatalError() }
-  #endif
 }
