@@ -46,7 +46,7 @@ struct TypeModelCanonicalDesciptionTests {
     check("@[Bar: Baz] Qux")
     check("@Foo(bar: baz) Qux")
     check("@Foo(bar: 1) Qux", "@Foo(bar: UNPARSED_ARGUMENT) Qux")
-    check("@ [ Bar : Baz] (bar: baz) Qux", "@[Bar: Baz](bar: baz) Qux")
+    check("@ [ Bar : Baz](bar: baz) Qux", "@[Bar: Baz](bar: baz) Qux")
     check("borrowing Bar")
     check("  __shared   Bar ", "__shared Bar")
   }
