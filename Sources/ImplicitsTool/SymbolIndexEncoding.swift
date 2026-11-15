@@ -1,9 +1,9 @@
 // Copyright 2026 Yandex LLC. All rights reserved.
 
 extension SemaTreeBuilder.SymbolIndex {
-  final class Strings {
+  struct Strings {
     var ids: [String: Int] = [:]
-    func id(_ text: String) -> Int {
+    mutating func id(_ text: String) -> Int {
       if let value = ids[text] {
         return value
       }
@@ -12,7 +12,16 @@ extension SemaTreeBuilder.SymbolIndex {
       return value
     }
 
-    func encode(_ symbol: Symbol)
+    func lookup(_ texts: some Sequence<String>) -> [Int]? {
+      var result: [Int] = []
+      for text in texts {
+        guard let value = ids[text] else { return nil }
+        result.append(value)
+      }
+      return result
+    }
+
+    mutating func encode(_ symbol: Symbol)
       -> (namespace: [Int], signature: Signature, parameters: [Parameter]) {
       let namespace = symbol.namespace.value.map { id($0) }
       var signature: [Int] = []

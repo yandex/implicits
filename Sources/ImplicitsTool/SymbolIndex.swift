@@ -103,7 +103,7 @@ extension SemaTreeBuilder {
       }
     }
 
-    private let strings = Strings()
+    private var strings = Strings()
     private var buckets: [[Int]: Bucket] = [:]
 
     mutating func addLookaheads(_ lookaheads: [Symbol]) {
@@ -123,10 +123,9 @@ extension SemaTreeBuilder {
       namespace: [String],
       args: [String]
     ) -> [Symbol] {
-      let ns = namespace.map { strings.id($0) }
-      let arguments = args.map { strings.id($0) }
+      guard let arguments = strings.lookup(args) else { return [] }
       var result: [Symbol] = []
-      if let bucket = buckets[ns] {
+      if let ns = strings.lookup(namespace), let bucket = buckets[ns] {
         for id in bucket.automaton.matches(arguments) {
           let symbol = bucket.entries[id]
           let accepts: Bool =
@@ -145,7 +144,8 @@ extension SemaTreeBuilder {
         }
       }
       if case .static? = kind, let last = namespace.last,
-         let bucket = buckets[Array(ns.dropLast())] {
+         let parent = strings.lookup(namespace.dropLast()),
+         let bucket = buckets[parent] {
         for id in bucket.automaton.matches(arguments) {
           let symbol = bucket.entries[id]
           if case let .staticFunction(name) = symbol.kind, name == last {
