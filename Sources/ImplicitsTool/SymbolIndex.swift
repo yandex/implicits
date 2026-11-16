@@ -45,127 +45,80 @@ struct SymbolImage {
 extension SemaTreeBuilder {
   struct SymbolIndex {
     typealias Symbol = SymbolInfoGeneric<Syntax>
+    typealias ParameterAutomaton = Automaton<String, Symbol>
 
-    private struct Node {
-      var transitions: [Int: [Int]] = [:]
-      var values: [Int] = []
+    var impl = [[String]: ParameterAutomaton]()
+    private var signatures = Set<CallableSignature>()
+
+    func findFunction(
+      args: [String],
+      namespace: [String]
+    ) -> [Symbol] {
+      impl[namespace]?.match(args) ?? []
     }
-
-    private struct ParameterAutomaton {
-      var nodes = [Node()]
-
-      mutating func add(_ parameters: [Parameter], value: Int) {
-        var previous = [0]
-        for parameter in parameters {
-          let next = nodes.count
-          nodes.append(Node())
-          for state in previous {
-            nodes[state].transitions[parameter.label, default: []].append(next)
-          }
-          if parameter.optional {
-            previous.append(next)
-          } else {
-            previous = [next]
-          }
-        }
-        for state in previous { nodes[state].values.append(value) }
-      }
-
-      func matches(_ input: [Int]) -> [Int] {
-        var current: Set = [0]
-        for label in input {
-          var next: Set<Int> = []
-          for state in current {
-            if let destinations = nodes[state].transitions[label] {
-              next.formUnion(destinations)
-            }
-          }
-          current = next
-          if current.isEmpty {
-            return []
-          }
-        }
-        var result: [Int] = []
-        for state in current { result.append(contentsOf: nodes[state].values) }
-        return result
-      }
-    }
-
-    private struct Bucket {
-      var signatures: Set<Signature> = []
-      var automaton = ParameterAutomaton()
-      var entries: [Symbol] = []
-
-      mutating func insert(signature: Signature, parameters: [Parameter], entry: Symbol) {
-        guard signatures.insert(signature).inserted else { return }
-        automaton.add(parameters, value: entries.count)
-        entries.append(entry)
-      }
-    }
-
-    private var strings = Strings()
-    private var buckets: [[Int]: Bucket] = [:]
 
     mutating func addLookaheads(_ lookaheads: [Symbol]) {
-      for symbol in lookaheads {
-        let (namespace, key, parameters) = strings.encode(symbol)
-        if buckets[namespace]?.signatures.contains(key) == true {
-          continue
-        }
-        buckets[namespace, default: Bucket()].insert(
-          signature: key, parameters: parameters, entry: symbol
-        )
-      }
-    }
-
-    private func find(
-      kind: SymbolImage.Kind?,
-      namespace: [String],
-      args: [String]
-    ) -> [Symbol] {
-      guard let arguments = strings.lookup(args) else { return [] }
-      var result: [Symbol] = []
-      if let ns = strings.lookup(namespace), let bucket = buckets[ns] {
-        for id in bucket.automaton.matches(arguments) {
-          let symbol = bucket.entries[id]
-          let accepts: Bool =
-            switch (kind, symbol.kind) {
-            case (nil, _): true
-            case (.callAsFunction?, .callAsFunction),
-                 (.explicitInit?, .initializer),
-                 (.static?, .initializer): true
-            case let (.member(name: requested)?, .memberFunction(name: actual)):
-              requested == actual
-            default: false
+      for lookahead in lookaheads {
+        let namespace = lookahead.namespace.value
+        if signatures.insert(lookahead.callableSignature).inserted {
+          let pattern: ParameterAutomaton.Pattern = .sequence(
+            lookahead.parameters.map {
+              $0.hasDefaultValue ? .optional($0.name) : .exact($0.name)
             }
-          if accepts {
-            result.append(symbol)
-          }
+          )
+          impl[namespace, default: Automaton()]
+            .addPattern(pattern, value: lookahead)
         }
       }
-      if case .static? = kind, let last = namespace.last,
-         let parent = strings.lookup(namespace.dropLast()),
-         let bucket = buckets[parent] {
-        for id in bucket.automaton.matches(arguments) {
-          let symbol = bucket.entries[id]
-          if case let .staticFunction(name) = symbol.kind, name == last {
-            result.append(symbol)
-          }
-        }
-      }
-      return result
-    }
-
-    func findFunction(args: [String], namespace: [String]) -> [Symbol] {
-      find(kind: nil, namespace: namespace, args: args)
-    }
-
-    func findInitializer(namespace: [String], args: [String]) -> [Symbol] {
-      match(.explicitInit(namespace: namespace, args: args))
     }
 
     func match(_ image: SymbolImage) -> [Symbol] {
-      find(kind: image.kind, namespace: image.namespace, args: image.arguments)
+      var matches: [Symbol] = []
+      matches += findFunction(
+        args: image.arguments, namespace: image.namespace
+      ).filter {
+        switch (image.kind, $0.kind) {
+        case (.callAsFunction, .callAsFunction),
+             (.explicitInit, .initializer), (.static, .initializer):
+          true
+        case let (.member(name: lName), .memberFunction(name: rName)):
+          lName == rName
+        default:
+          false
+        }
+      }
+      if !image.namespace.isEmpty {
+        matches += findFunction(
+          args: image.arguments, namespace: image.namespace.dropLast()
+        ).filter {
+          switch (image.kind, $0.kind) {
+          case let (.static, .staticFunction(name: name)):
+            name == image.namespace.last
+          default:
+            false
+          }
+        }
+      }
+      return matches
+    }
+
+    func findInitializer(
+      namespace: [String],
+      args: [String]
+    ) -> [Symbol] {
+      match(.explicitInit(namespace: namespace, args: args))
+    }
+  }
+}
+
+extension FunctionKind {
+  fileprivate func matches(with other: Self) -> Bool {
+    switch (self, other) {
+    // initializer optionality is ignored
+    case (.initializer, .initializer):
+      true
+    default:
+      self == other
     }
   }
 }
