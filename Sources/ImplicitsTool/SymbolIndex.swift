@@ -48,6 +48,7 @@ extension SemaTreeBuilder {
     typealias ParameterAutomaton = Automaton<String, Symbol>
 
     var impl = [[String]: ParameterAutomaton]()
+    private var signatures = Set<CallableSignature>()
 
     func findFunction(
       args: [String],
@@ -59,18 +60,12 @@ extension SemaTreeBuilder {
     mutating func addLookaheads(_ lookaheads: [Symbol]) {
       for lookahead in lookaheads {
         let namespace = lookahead.namespace.value
-        let pattern: ParameterAutomaton.Pattern = .sequence(
-          lookahead.parameters.map {
-            $0.hasDefaultValue ? .optional($0.name) : .exact($0.name)
-          }
-        )
-        let alreadyExists = findFunction(
-          args: lookahead.parameters.map(\.name),
-          namespace: namespace
-        ).contains(where: {
-          $0.callableSignature == lookahead.callableSignature
-        })
-        if !alreadyExists {
+        if signatures.insert(lookahead.callableSignature).inserted {
+          let pattern: ParameterAutomaton.Pattern = .sequence(
+            lookahead.parameters.map {
+              $0.hasDefaultValue ? .optional($0.name) : .exact($0.name)
+            }
+          )
           impl[namespace, default: Automaton()]
             .addPattern(pattern, value: lookahead)
         }
